@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>儀表板 — CCS 證書管理系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: {
+        'ccs-blue': '#3165A7', 'ccs-teal': '#1A9A83', 'ccs-orange': '#F3982D', 'ccs-gray': '#58595B'
+      }}}
+    }
+  </script>
+  <link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body class="bg-gray-50">
+
+  <!-- Loading -->
+  <div id="loading-screen">
+    <img src="assets/img/logo.png" alt="CCS" class="h-16 mb-4 object-contain" onerror="this.style.display='none'">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- App Shell -->
+  <div id="app" style="display:none">
+    <div id="sidebar" class="sidebar"></div>
+    <div id="main-content">
+      <div id="topbar"></div>
+      <main class="flex-1 p-6">
+
+        <!-- 歡迎列 -->
+        <div class="mb-6">
+          <h2 class="text-2xl font-bold text-gray-800" id="welcome-msg">歡迎回來</h2>
+          <p class="text-gray-500 text-sm mt-1" id="welcome-date"></p>
+        </div>
+
+        <!-- 統計卡片 -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div class="stat-card">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm text-gray-500" data-i18n="dashboard.this_month_certs">本月發證數</span>
+              <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#eff6ff">
+                <svg class="w-5 h-5 text-ccs-blue" style="color:#3165A7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+            </div>
+            <div class="text-3xl font-bold text-gray-800" id="stat-month-certs">—</div>
+            <div class="text-xs text-gray-400 mt-1" data-i18n="dashboard.cert_unit">張</div>
+          </div>
+          <div class="stat-card">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm text-gray-500" data-i18n="dashboard.total_projects">課程專案數</span>
+              <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#f0fdf4">
+                <svg class="w-5 h-5" style="color:#1A9A83" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+              </div>
+            </div>
+            <div class="text-3xl font-bold text-gray-800" id="stat-total-projects">—</div>
+            <div class="text-xs text-gray-400 mt-1" data-i18n="dashboard.project_unit">個</div>
+          </div>
+          <div class="stat-card">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm text-gray-500" data-i18n="dashboard.total_clients">服務企業數</span>
+              <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#fff7ed">
+                <svg class="w-5 h-5" style="color:#F3982D" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+              </div>
+            </div>
+            <div class="text-3xl font-bold text-gray-800" id="stat-total-clients">—</div>
+            <div class="text-xs text-gray-400 mt-1" data-i18n="dashboard.client_unit">家</div>
+          </div>
+          <div class="stat-card">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm text-gray-500" data-i18n="dashboard.pending_certs">待產生證書</span>
+              <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#fef2f2">
+                <svg class="w-5 h-5" style="color:#ef4444" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+              </div>
+            </div>
+            <div class="text-3xl font-bold text-gray-800" id="stat-pending">—</div>
+            <div class="text-xs text-gray-400 mt-1" data-i18n="dashboard.cert_unit">張</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          <!-- 近期課程 -->
+          <div class="lg:col-span-2 card">
+            <div class="card-header">
+              <h3 class="font-bold text-gray-800" data-i18n="dashboard.recent_projects">近期課程</h3>
+              <a href="projects/index.html" class="text-sm text-ccs-blue hover:underline" data-i18n="dashboard.view_all">查看全部</a>
+            </div>
+            <div id="recent-projects-body">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th data-i18n="projects.col_client">客戶/企業</th>
+                    <th data-i18n="projects.col_course">課程名稱</th>
+                    <th data-i18n="projects.col_date">上課日期</th>
+                    <th data-i18n="projects.col_students">學員數</th>
+                    <th data-i18n="projects.col_status">狀態</th>
+                  </tr>
+                </thead>
+                <tbody id="recent-projects-list">
+                  <tr><td colspan="5" class="text-center py-12 text-gray-400" data-i18n="app.loading">載入中...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 快速操作 -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="font-bold text-gray-800" data-i18n="dashboard.quick_actions">快速操作</h3>
+            </div>
+            <div class="card-body space-y-3">
+              <a href="projects/index.html?action=new" class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-ccs-blue hover:bg-blue-50 transition-all group">
+                <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-ccs-blue transition-colors">
+                  <svg class="w-5 h-5 text-ccs-blue group-hover:text-white transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                </div>
+                <div>
+                  <div class="text-sm font-semibold text-gray-700" data-i18n="dashboard.new_project">新增課程</div>
+                  <div class="text-xs text-gray-400">建立新的教育訓練專案</div>
+                </div>
+              </a>
+              <a href="projects/index.html?action=import" class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-ccs-teal hover:bg-teal-50 transition-all group">
+                <div class="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center group-hover:bg-ccs-teal transition-colors">
+                  <svg class="w-5 h-5 text-ccs-teal group-hover:text-white transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                </div>
+                <div>
+                  <div class="text-sm font-semibold text-gray-700" data-i18n="dashboard.import_students">匯入名單</div>
+                  <div class="text-xs text-gray-400">上傳 Excel 批次建立學員</div>
+                </div>
+              </a>
+              <a href="templates/index.html" class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-orange-400 hover:bg-orange-50 transition-all group">
+                <div class="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center group-hover:bg-ccs-orange transition-colors">
+                  <svg class="w-5 h-5 text-ccs-orange group-hover:text-white transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
+                </div>
+                <div>
+                  <div class="text-sm font-semibold text-gray-700" data-i18n="nav.templates">證書模板</div>
+                  <div class="text-xs text-gray-400">設計或管理證書模板</div>
+                </div>
+              </a>
+              <a href="settings/org.html" class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-gray-400 hover:bg-gray-50 transition-all group">
+                <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center group-hover:bg-gray-600 transition-colors">
+                  <svg class="w-5 h-5 text-gray-500 group-hover:text-white transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+                </div>
+                <div>
+                  <div class="text-sm font-semibold text-gray-700" data-i18n="nav.settings">系統設定</div>
+                  <div class="text-xs text-gray-400">組織資料、地址、帳號</div>
+                </div>
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Firebase + App Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/init.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/components.js"></script>
+
+  <script>
+    (async () => {
+      await UI.initAdminPage({ active: 'dashboard', title: i18n.t('dashboard.title') });
+
+      // 歡迎訊息
+      const profile = Auth.profile;
+      const name = profile?.displayName || Auth.user?.email || '';
+      document.getElementById('welcome-msg').textContent = `${i18n.t('dashboard.welcome')}，${name}`;
+      document.getElementById('welcome-date').textContent = new Date().toLocaleDateString(
+        i18n.lang === 'vi' ? 'vi-VN' : 'zh-TW',
+        { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
+      );
+
+      // 載入統計資料
+      await loadStats();
+      await loadRecentProjects();
+    })();
+
+    async function loadStats() {
+      try {
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        const projectsSnap = await db.collection(Collections.PROJECTS)
+          .where('orgId', '==', APP_CONFIG.orgId).get();
+
+        const projects = projectsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const clients  = new Set(projects.map(p => p.clientName).filter(Boolean));
+
+        document.getElementById('stat-total-projects').textContent = projects.length;
+        document.getElementById('stat-total-clients').textContent  = clients.size;
+
+        // 月份發證數與待產生（從 students 子集合，簡化計算）
+        let monthCerts = 0, pending = 0;
+        for (const p of projects) {
+          const studSnap = await db.collection(Collections.PROJECTS).doc(p.id)
+            .collection(Collections.STUDENTS).get();
+          studSnap.docs.forEach(d => {
+            const s = d.data();
+            if (s.status === 'generated') {
+              const genAt = s.generatedAt?.toDate?.() || new Date(0);
+              if (genAt >= monthStart) monthCerts++;
+            } else if (s.status === 'pending') {
+              pending++;
+            }
+          });
+        }
+        document.getElementById('stat-month-certs').textContent = monthCerts;
+        document.getElementById('stat-pending').textContent     = pending;
+      } catch (e) {
+        console.warn('Stats load failed:', e);
+        ['stat-month-certs','stat-total-projects','stat-total-clients','stat-pending']
+          .forEach(id => document.getElementById(id).textContent = '0');
+      }
+    }
+
+    async function loadRecentProjects() {
+      try {
+        const snap = await db.collection(Collections.PROJECTS)
+          .where('orgId', '==', APP_CONFIG.orgId)
+          .orderBy('createdAt', 'desc').limit(5).get();
+
+        const tbody = document.getElementById('recent-projects-list');
+        if (snap.empty) {
+          tbody.innerHTML = `<tr><td colspan="5" class="text-center py-12 text-gray-400">
+            <div class="empty-state"><p>${i18n.t('dashboard.no_projects_desc')}</p></div>
+          </td></tr>`;
+          return;
+        }
+
+        const statusBadge = {
+          draft:     `<span class="badge badge-draft">${i18n.t('dashboard.status_draft')}</span>`,
+          active:    `<span class="badge badge-active">${i18n.t('dashboard.status_active')}</span>`,
+          completed: `<span class="badge badge-completed">${i18n.t('dashboard.status_completed')}</span>`,
+        };
+
+        tbody.innerHTML = snap.docs.map(d => {
+          const p = d.data();
+          const courseName = p.courseName?.[i18n.lang] || p.courseName?.zh_TW || '—';
+          const dateStr = p.trainingDate ? new Date(p.trainingDate).toLocaleDateString('zh-TW') : '—';
+          return `<tr>
+            <td class="font-medium">${p.clientName || '—'}</td>
+            <td>${courseName}</td>
+            <td class="text-gray-500">${dateStr}</td>
+            <td>${p.studentCount || 0}</td>
+            <td>${statusBadge[p.status] || statusBadge.draft}</td>
+          </tr>`;
+        }).join('');
+      } catch (e) {
+        console.warn('Recent projects load failed:', e);
+      }
+    }
+  </script>
+</body>
+</html>

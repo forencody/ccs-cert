@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>證書模板 — CCS 證書管理系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{'ccs-blue':'#3165A7','ccs-teal':'#1A9A83','ccs-orange':'#F3982D','ccs-gray':'#58595B'}}}}</script>
+  <link rel="stylesheet" href="../assets/css/app.css">
+</head>
+<body class="bg-gray-50">
+
+  <div id="loading-screen"><div class="spinner"></div></div>
+
+  <div id="app" style="display:none">
+    <div id="sidebar"></div>
+    <div id="main-content">
+      <div id="topbar"></div>
+      <main class="flex-1 p-6 flex flex-col items-center justify-center" style="min-height:60vh">
+        <div class="text-center max-w-md">
+          <div class="w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-6" style="background:linear-gradient(135deg,#fff7ed,#fed7aa)">
+            <svg class="w-12 h-12" style="color:#F3982D" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+            </svg>
+          </div>
+          <h2 class="text-xl font-bold text-gray-800 mb-2" data-i18n="templates.title">證書模板</h2>
+          <p class="text-gray-500 text-sm mb-6" data-i18n="templates.coming_soon">模板設計器將於 Phase 3 推出</p>
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-left text-sm text-blue-800">
+            <p class="font-semibold mb-2">Phase 3 即將推出：</p>
+            <ul class="space-y-1 text-blue-700">
+              <li>• 上傳證書底圖（PNG / JPG / PDF）</li>
+              <li>• 拖曳定位欄位（姓名、課程、日期、QR Code…）</li>
+              <li>• 對齊輔助線、字體與顏色設定</li>
+              <li>• 四語系即時預覽（繁中 / 簡中 / 英 / 越）</li>
+              <li>• 儲存模板庫，課程專案選用</li>
+            </ul>
+          </div>
+          <a href="../index.html" class="btn-secondary mt-6 inline-flex">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+            <span data-i18n="app.back">返回儀表板</span>
+          </a>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/init.js"></script>
+  <script src="../assets/js/i18n.js"></script>
+  <script src="../assets/js/auth.js"></script>
+  <script src="../assets/js/components.js"></script>
+  <script>
+    (async () => {
+      await UI.initAdminPage({ active: 'templates', title: i18n.t('templates.title') });
+    })();
+  </script>
+</body>
+</html>

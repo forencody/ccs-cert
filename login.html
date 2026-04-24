@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="login.title">CCS 證書管理系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: {
+        'ccs-blue':   '#3165A7',
+        'ccs-teal':   '#1A9A83',
+        'ccs-orange': '#F3982D',
+        'ccs-gray':   '#58595B',
+      }}}
+    }
+  </script>
+  <link rel="stylesheet" href="assets/css/app.css">
+  <style>
+    body { background: linear-gradient(135deg, #1e3a5f 0%, #245190 50%, #1A9A83 100%); min-height: 100vh; }
+    .login-card { backdrop-filter: blur(10px); background: rgba(255,255,255,0.97); }
+    .tab-line { height: 2px; background: #3165A7; transition: transform 0.2s; border-radius: 2px; }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+  <!-- 語系切換 -->
+  <div class="fixed top-4 right-4 z-50">
+    <select onchange="i18n.setLang(this.value); location.reload()"
+      class="text-sm bg-white/20 text-white border border-white/30 rounded-lg px-3 py-1.5 cursor-pointer focus:outline-none">
+      <option value="zh_TW" style="color:#111">繁體中文</option>
+      <option value="vi"    style="color:#111">Tiếng Việt</option>
+    </select>
+  </div>
+
+  <!-- 登入卡片 -->
+  <div class="login-card w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+
+    <!-- 卡片頭部 -->
+    <div class="bg-gradient-to-r from-ccs-blue to-ccs-teal p-6 text-white text-center">
+      <img src="assets/img/logo.png" alt="CCS Logo" class="h-14 mx-auto mb-3 object-contain" onerror="this.style.display='none'">
+      <h1 class="text-xl font-bold" data-i18n="login.title">CCS 證書管理系統</h1>
+      <p class="text-sm text-blue-100 mt-1" data-i18n="login.subtitle">成創永續股份有限公司</p>
+    </div>
+
+    <!-- 卡片主體 -->
+    <div class="p-6">
+
+      <!-- Tabs -->
+      <div class="mb-6">
+        <div class="flex gap-0">
+          <button id="tab-admin" onclick="switchTab('admin')"
+            class="flex-1 py-3 text-sm font-semibold text-ccs-blue border-b-2 border-ccs-blue transition-colors">
+            <span data-i18n="login.admin_tab">管理員登入</span>
+          </button>
+          <button id="tab-student" onclick="switchTab('student')"
+            class="flex-1 py-3 text-sm font-semibold text-gray-400 border-b-2 border-transparent transition-colors hover:text-gray-600">
+            <span data-i18n="login.student_tab">學員登入</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ── 管理員登入表單 ── -->
+      <div id="form-admin">
+        <div class="space-y-4">
+          <div>
+            <label class="form-label" data-i18n="login.email">電子郵件</label>
+            <input id="admin-email" type="email" class="form-input"
+              data-i18n-placeholder="login.email_placeholder" placeholder="請輸入電子郵件"
+              onkeydown="if(event.key==='Enter') adminLogin()">
+          </div>
+          <div>
+            <label class="form-label" data-i18n="login.password">密碼</label>
+            <input id="admin-password" type="password" class="form-input"
+              data-i18n-placeholder="login.password_placeholder" placeholder="請輸入密碼"
+              onkeydown="if(event.key==='Enter') adminLogin()">
+          </div>
+          <div id="admin-error" class="hidden text-sm text-red-500 flex items-center gap-2 bg-red-50 p-3 rounded-lg">
+            <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+            <span id="admin-error-msg"></span>
+          </div>
+          <button id="btn-admin-login" onclick="adminLogin()" class="btn-primary w-full justify-center py-3">
+            <span data-i18n="login.login_btn">登入</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ── 學員登入表單 ── -->
+      <div id="form-student" class="hidden">
+
+        <!-- 發送連結 -->
+        <div id="student-send">
+          <p class="text-sm text-gray-500 mb-4" data-i18n="login.student_desc">
+            輸入您的 Email，系統將發送登入連結至您的信箱
+          </p>
+          <div class="space-y-4">
+            <div>
+              <label class="form-label" data-i18n="login.email">電子郵件</label>
+              <input id="student-email" type="email" class="form-input"
+                data-i18n-placeholder="login.email_placeholder" placeholder="請輸入電子郵件"
+                onkeydown="if(event.key==='Enter') sendMagicLink()">
+            </div>
+            <div id="student-error" class="hidden text-sm text-red-500 flex items-center gap-2 bg-red-50 p-3 rounded-lg">
+              <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+              <span id="student-error-msg"></span>
+            </div>
+            <button id="btn-send-link" onclick="sendMagicLink()" class="btn-primary w-full justify-center py-3">
+              <span data-i18n="login.send_link_btn">發送登入連結</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 已發送提示 -->
+        <div id="student-sent" class="hidden text-center py-4">
+          <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          </div>
+          <h3 class="font-bold text-gray-800 mb-2" data-i18n="login.link_sent_title">登入連結已發送</h3>
+          <p class="text-sm text-gray-500 mb-4" data-i18n="login.link_sent_desc">
+            請至您的信箱點擊登入連結，完成驗證後即可查閱您的證書
+          </p>
+          <button onclick="showSendForm()" class="text-sm text-ccs-blue hover:underline" data-i18n="login.resend">重新發送</button>
+        </div>
+
+      </div>
+
+      <!-- Magic Link 驗證中 -->
+      <div id="form-verifying" class="hidden text-center py-8">
+        <div class="spinner mx-auto mb-4"></div>
+        <p class="text-gray-500 text-sm" data-i18n="login.verifying">驗證登入中，請稍候...</p>
+      </div>
+
+    </div>
+
+    <!-- 底部版權 -->
+    <div class="px-6 pb-5 text-center">
+      <p class="text-xs text-gray-400">© 2024 C.C.Sustain ESG Solution Co., Ltd.</p>
+    </div>
+
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <!-- App scripts -->
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/init.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/auth.js"></script>
+
+  <script>
+    // ── 初始化 ────────────────────────────────
+    (async () => {
+      await i18n.load();
+
+      // 設定語系選單
+      document.querySelector('select').value = i18n.lang;
+
+      // 若為 Magic Link 點擊後回來
+      if (auth.isSignInWithEmailLink(window.location.href)) {
+        showVerifying();
+        try {
+          const ok = await Auth.completeMagicLink();
+          if (ok) {
+            // 學員導向 verify.html，管理員導向 index.html
+            if (Auth.isStudent) {
+              window.location.href = 'verify.html';
+            } else {
+              window.location.href = 'index.html';
+            }
+          }
+        } catch (e) {
+          hideVerifying();
+          showError('student', getErrorMsg(e));
+        }
+        return;
+      }
+
+      // 已登入：直接導向
+      await Auth.ready();
+      if (Auth.isLoggedIn) {
+        window.location.href = Auth.isStudent ? 'verify.html' : 'index.html';
+      }
+    })();
+
+    // ── Tab 切換 ──────────────────────────────
+    function switchTab(tab) {
+      const isAdmin = tab === 'admin';
+      document.getElementById('form-admin').classList.toggle('hidden', !isAdmin);
+      document.getElementById('form-student').classList.toggle('hidden', isAdmin);
+      document.getElementById('tab-admin').className   = `flex-1 py-3 text-sm font-semibold transition-colors border-b-2 ${isAdmin ? 'text-ccs-blue border-ccs-blue' : 'text-gray-400 border-transparent hover:text-gray-600'}`;
+      document.getElementById('tab-student').className = `flex-1 py-3 text-sm font-semibold transition-colors border-b-2 ${!isAdmin ? 'text-ccs-blue border-ccs-blue' : 'text-gray-400 border-transparent hover:text-gray-600'}`;
+    }
+
+    function showVerifying() {
+      ['form-admin','form-student'].forEach(id => document.getElementById(id).classList.add('hidden'));
+      document.getElementById('form-verifying').classList.remove('hidden');
+    }
+    function hideVerifying() {
+      document.getElementById('form-verifying').classList.add('hidden');
+      document.getElementById('form-student').classList.remove('hidden');
+    }
+
+    // ── 管理員登入 ────────────────────────────
+    async function adminLogin() {
+      const email    = document.getElementById('admin-email').value.trim();
+      const password = document.getElementById('admin-password').value;
+      if (!email || !password) return;
+
+      const btn = document.getElementById('btn-admin-login');
+      btn.disabled = true;
+      btn.querySelector('span').setAttribute('data-i18n', 'login.logging_in');
+      btn.querySelector('span').textContent = i18n.t('login.logging_in');
+
+      try {
+        await Auth.signInWithPassword(email, password);
+        window.location.href = 'index.html';
+      } catch (e) {
+        showError('admin', getErrorMsg(e));
+        btn.disabled = false;
+        btn.querySelector('span').setAttribute('data-i18n', 'login.login_btn');
+        btn.querySelector('span').textContent = i18n.t('login.login_btn');
+      }
+    }
+
+    // ── 學員 Magic Link ───────────────────────
+    async function sendMagicLink() {
+      const email = document.getElementById('student-email').value.trim();
+      if (!email) return;
+
+      const btn = document.getElementById('btn-send-link');
+      btn.disabled = true;
+      btn.querySelector('span').setAttribute('data-i18n', 'login.sending');
+      btn.querySelector('span').textContent = i18n.t('login.sending');
+
+      try {
+        await Auth.sendMagicLink(email);
+        document.getElementById('student-send').classList.add('hidden');
+        document.getElementById('student-sent').classList.remove('hidden');
+      } catch (e) {
+        showError('student', getErrorMsg(e));
+        btn.disabled = false;
+        btn.querySelector('span').setAttribute('data-i18n', 'login.send_link_btn');
+        btn.querySelector('span').textContent = i18n.t('login.send_link_btn');
+      }
+    }
+
+    function showSendForm() {
+      document.getElementById('student-send').classList.remove('hidden');
+      document.getElementById('student-sent').classList.add('hidden');
+    }
+
+    // ── 錯誤訊息 ──────────────────────────────
+    function showError(area, msg) {
+      const el    = document.getElementById(`${area}-error`);
+      const msgEl = document.getElementById(`${area}-error-msg`);
+      el.classList.remove('hidden');
+      msgEl.textContent = msg;
+    }
+
+    function getErrorMsg(e) {
+      const map = {
+        'auth/user-not-found':   i18n.t('login.error_not_found'),
+        'auth/wrong-password':   i18n.t('login.error_invalid'),
+        'auth/invalid-credential': i18n.t('login.error_invalid'),
+        'auth/not-authorized':   i18n.t('login.error_not_authorized'),
+        'auth/network-request-failed': i18n.t('login.error_network'),
+      };
+      return map[e.code] || i18n.t('login.error_invalid');
+    }
+  </script>
+</body>
+</html>

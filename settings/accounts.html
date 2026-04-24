@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>帳號管理 — CCS 證書管理系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{'ccs-blue':'#3165A7','ccs-teal':'#1A9A83','ccs-orange':'#F3982D','ccs-gray':'#58595B'}}}}</script>
+  <link rel="stylesheet" href="../assets/css/app.css">
+</head>
+<body class="bg-gray-50">
+
+  <div id="loading-screen"><div class="spinner"></div></div>
+
+  <div id="app" style="display:none">
+    <div id="sidebar"></div>
+    <div id="main-content">
+      <div id="topbar"></div>
+      <main class="flex-1 p-6">
+
+        <div class="flex items-center justify-between mb-6">
+          <p class="text-gray-500 text-sm" data-i18n="accounts.desc">管理系統帳號與權限</p>
+          <button onclick="openModal()" class="btn-primary">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            <span data-i18n="accounts.add_btn">新增帳號</span>
+          </button>
+        </div>
+
+        <!-- 搜尋列 -->
+        <div class="card mb-4">
+          <div class="px-4 py-3 flex gap-3">
+            <div class="relative flex-1 max-w-sm">
+              <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              <input id="search-input" type="text" class="form-input pl-9"
+                data-i18n-placeholder="accounts.search_placeholder" placeholder="搜尋 Email 或姓名..."
+                oninput="filterTable()">
+            </div>
+            <select id="role-filter" class="form-select" style="width:auto" onchange="filterTable()">
+              <option value="">全部角色</option>
+              <option value="superadmin"  data-i18n="accounts.role_superadmin">主管理員</option>
+              <option value="certmanager" data-i18n="accounts.role_certmanager">證書管理員</option>
+              <option value="student"     data-i18n="accounts.role_student">學員</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 帳號表格 -->
+        <div class="card overflow-hidden">
+          <table class="data-table" id="accounts-table">
+            <thead>
+              <tr>
+                <th data-i18n="accounts.col_email">電子郵件</th>
+                <th data-i18n="accounts.col_name">姓名</th>
+                <th data-i18n="accounts.col_role">角色</th>
+                <th data-i18n="accounts.col_created">建立時間</th>
+                <th data-i18n="accounts.col_actions">操作</th>
+              </tr>
+            </thead>
+            <tbody id="accounts-tbody">
+              <tr><td colspan="5" class="text-center py-12 text-gray-400"><div class="spinner mx-auto"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- 新增/編輯 Modal -->
+  <div id="account-modal" class="modal-overlay" style="display:none">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="font-bold text-gray-800" id="modal-title" data-i18n="accounts.add_title">新增帳號</h3>
+        <button onclick="closeModal()" class="btn-icon">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body space-y-4">
+        <div>
+          <label class="form-label"><span data-i18n="accounts.col_email">電子郵件</span> <span class="text-red-400">*</span></label>
+          <input id="f-email" type="email" class="form-input" placeholder="user@example.com">
+        </div>
+        <div>
+          <label class="form-label" data-i18n="accounts.display_name">顯示名稱</label>
+          <input id="f-name" class="form-input" data-i18n-placeholder="accounts.display_name_placeholder" placeholder="請輸入姓名">
+        </div>
+        <div>
+          <label class="form-label" data-i18n="accounts.role_label">帳號角色 <span class="text-red-400">*</span></label>
+          <select id="f-role" class="form-select" onchange="onRoleChange()">
+            <option value="certmanager" data-i18n="accounts.role_certmanager">證書管理員</option>
+            <option value="student"     data-i18n="accounts.role_student">學員</option>
+            <option value="superadmin"  data-i18n="accounts.role_superadmin">主管理員</option>
+          </select>
+        </div>
+        <div id="password-field">
+          <label class="form-label" data-i18n="accounts.password_label">初始密碼</label>
+          <input id="f-password" type="password" class="form-input" data-i18n-placeholder="accounts.password_placeholder" placeholder="至少 8 個字元">
+          <p class="text-xs text-gray-400 mt-1" id="password-note" data-i18n="accounts.password_note">學員帳號使用免密碼 Email 登入，無需設定密碼</p>
+        </div>
+        <div id="form-error" class="hidden text-sm text-red-500 bg-red-50 p-3 rounded-lg"></div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeModal()" class="btn-secondary" data-i18n="app.cancel">取消</button>
+        <button onclick="saveAccount()" class="btn-primary" id="btn-modal-save">
+          <span data-i18n="app.save">儲存</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 刪除確認 Modal -->
+  <div id="delete-modal" class="modal-overlay" style="display:none">
+    <div class="modal-box" style="max-width:400px">
+      <div class="modal-header">
+        <h3 class="font-bold text-gray-800">確認刪除</h3>
+        <button onclick="closeDeleteModal()" class="btn-icon">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="text-gray-600 text-sm" id="delete-msg"></p>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeDeleteModal()" class="btn-secondary" data-i18n="app.cancel">取消</button>
+        <button onclick="confirmDelete()" class="btn-danger" data-i18n="app.delete">刪除</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/init.js"></script>
+  <script src="../assets/js/i18n.js"></script>
+  <script src="../assets/js/auth.js"></script>
+  <script src="../assets/js/components.js"></script>
+  <script>
+    let _accounts = [];
+    let _editingId = null;
+    let _deletingId = null;
+
+    const ROLE_BADGES = {
+      superadmin:  () => `<span class="badge badge-superadmin">${i18n.t('accounts.role_superadmin')}</span>`,
+      certmanager: () => `<span class="badge badge-certmanager">${i18n.t('accounts.role_certmanager')}</span>`,
+      student:     () => `<span class="badge badge-student">${i18n.t('accounts.role_student')}</span>`,
+    };
+
+    (async () => {
+      await UI.initAdminPage({ active: 'accounts', title: i18n.t('accounts.title') });
+      await loadAccounts();
+    })();
+
+    async function loadAccounts() {
+      try {
+        _accounts = await Auth.listUsers();
+        renderTable(_accounts);
+      } catch (e) {
+        console.error(e);
+        document.getElementById('accounts-tbody').innerHTML =
+          `<tr><td colspan="5" class="text-center py-8 text-red-400">載入失敗</td></tr>`;
+      }
+    }
+
+    function renderTable(data) {
+      const tbody = document.getElementById('accounts-tbody');
+      if (!data.length) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-12 text-gray-400">${i18n.t('accounts.no_data')}</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = data.map(u => `
+        <tr>
+          <td>
+            <div class="font-medium text-gray-800">${u.email || '—'}</div>
+          </td>
+          <td>${u.displayName || '—'}</td>
+          <td>${(ROLE_BADGES[u.role] || (() => '—'))()}</td>
+          <td class="text-gray-500">${UI.formatDate(u.createdAt, i18n.lang)}</td>
+          <td>
+            <div class="flex gap-1">
+              <button onclick="editAccount('${u.id}')" class="btn-icon" title="${i18n.t('app.edit')}">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              </button>
+              ${u.id !== Auth.user?.uid ? `
+              <button onclick="deleteAccount('${u.id}', '${u.email}')" class="btn-icon" style="color:#ef4444" title="${i18n.t('app.delete')}">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>` : ''}
+            </div>
+          </td>
+        </tr>`).join('');
+    }
+
+    function filterTable() {
+      const q    = document.getElementById('search-input').value.toLowerCase();
+      const role = document.getElementById('role-filter').value;
+      const filtered = _accounts.filter(u =>
+        (!q    || u.email?.toLowerCase().includes(q) || u.displayName?.toLowerCase().includes(q)) &&
+        (!role || u.role === role)
+      );
+      renderTable(filtered);
+    }
+
+    function openModal(id = null) {
+      _editingId = id;
+      clearForm();
+      if (id) {
+        const u = _accounts.find(x => x.id === id);
+        if (u) {
+          document.getElementById('f-email').value = u.email || '';
+          document.getElementById('f-email').disabled = true;
+          document.getElementById('f-name').value  = u.displayName || '';
+          document.getElementById('f-role').value  = u.role || 'student';
+        }
+        document.getElementById('modal-title').textContent = i18n.t('accounts.edit_title');
+        document.getElementById('password-field').style.display = 'none';
+      } else {
+        document.getElementById('f-email').disabled = false;
+        document.getElementById('modal-title').textContent = i18n.t('accounts.add_title');
+        onRoleChange();
+      }
+      document.getElementById('account-modal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('account-modal').style.display = 'none';
+      document.getElementById('f-email').disabled = false;
+    }
+
+    function clearForm() {
+      ['f-email','f-name','f-password'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+      document.getElementById('form-error').classList.add('hidden');
+      document.getElementById('password-field').style.display = '';
+      document.getElementById('f-role').value = 'certmanager';
+    }
+
+    function onRoleChange() {
+      const role = document.getElementById('f-role').value;
+      const pwField = document.getElementById('password-field');
+      const note    = document.getElementById('password-note');
+      const pwInput = document.getElementById('f-password');
+      if (role === 'student') {
+        note.style.display = '';
+        pwInput.style.opacity = '0.4';
+        pwInput.placeholder = i18n.t('accounts.password_note');
+        pwInput.disabled = true;
+      } else {
+        note.style.display = 'none';
+        pwInput.style.opacity = '';
+        pwInput.placeholder = i18n.t('accounts.password_placeholder');
+        pwInput.disabled = false;
+      }
+    }
+
+    async function saveAccount() {
+      const email    = document.getElementById('f-email').value.trim();
+      const name     = document.getElementById('f-name').value.trim();
+      const role     = document.getElementById('f-role').value;
+      const password = document.getElementById('f-password').value;
+
+      if (!email) { showFormError('請輸入電子郵件'); return; }
+      if (!_editingId && role !== 'student' && password.length < 8) {
+        showFormError('密碼至少需要 8 個字元'); return;
+      }
+
+      const btn = document.getElementById('btn-modal-save');
+      btn.disabled = true;
+
+      try {
+        if (_editingId) {
+          await Auth.updateUserProfile(_editingId, { displayName: name, role });
+          UI.toast(i18n.t('accounts.save_success'), 'success');
+        } else {
+          await Auth.createUser(email, role !== 'student' ? password : null, name, role);
+          UI.toast(i18n.t('accounts.create_success'), 'success');
+        }
+        closeModal();
+        await loadAccounts();
+      } catch (e) {
+        console.error(e);
+        const msg = e.code === 'auth/email-already-in-use' ? '此 Email 已被使用' : (e.message || '操作失敗');
+        showFormError(msg);
+      } finally { btn.disabled = false; }
+    }
+
+    function showFormError(msg) {
+      const el = document.getElementById('form-error');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    function editAccount(id) { openModal(id); }
+
+    function deleteAccount(id, email) {
+      _deletingId = id;
+      document.getElementById('delete-msg').textContent = i18n.t('accounts.delete_confirm', { email });
+      document.getElementById('delete-modal').style.display = 'flex';
+    }
+
+    function closeDeleteModal() { document.getElementById('delete-modal').style.display = 'none'; _deletingId = null; }
+
+    async function confirmDelete() {
+      if (!_deletingId) return;
+      await Auth.deleteUser(_deletingId);
+      closeDeleteModal();
+      await loadAccounts();
+      UI.toast(i18n.t('accounts.delete_success'), 'success');
+    }
+  </script>
+</body>
+</html>

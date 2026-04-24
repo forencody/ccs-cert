@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>組織資料 — CCS 證書管理系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{'ccs-blue':'#3165A7','ccs-teal':'#1A9A83','ccs-orange':'#F3982D','ccs-gray':'#58595B'}}}}</script>
+  <link rel="stylesheet" href="../assets/css/app.css">
+</head>
+<body class="bg-gray-50">
+
+  <div id="loading-screen">
+    <div class="spinner"></div>
+  </div>
+
+  <div id="app" style="display:none">
+    <div id="sidebar"></div>
+    <div id="main-content">
+      <div id="topbar"></div>
+      <main class="flex-1 p-6 max-w-4xl">
+
+        <p class="text-gray-500 text-sm mb-6" data-i18n="org.desc">設定發證單位的基本資訊，將顯示於證書上</p>
+
+        <form id="org-form" onsubmit="saveOrg(event)" class="space-y-6">
+
+          <!-- 基本資訊 -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="font-bold text-gray-800" data-i18n="org.basic_info">基本資訊</h3>
+            </div>
+            <div class="card-body grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="form-label"><span data-i18n="org.name_zh_TW">組織名稱（繁體中文）</span> <span class="text-red-400">*</span></label>
+                <input id="name_zh_TW" class="form-input" required>
+              </div>
+              <div>
+                <label class="form-label" data-i18n="org.name_zh_CN">組織名稱（簡體中文）</label>
+                <input id="name_zh_CN" class="form-input">
+              </div>
+              <div>
+                <label class="form-label" data-i18n="org.name_en">組織名稱（英文）</label>
+                <input id="name_en" class="form-input">
+              </div>
+              <div>
+                <label class="form-label" data-i18n="org.name_vi">組織名稱（越文）</label>
+                <input id="name_vi" class="form-input">
+              </div>
+            </div>
+          </div>
+
+          <!-- 品牌資產 -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="font-bold text-gray-800" data-i18n="org.brand_assets">品牌資產</h3>
+            </div>
+            <div class="card-body grid grid-cols-1 md:grid-cols-2 gap-6">
+
+              <!-- Logo -->
+              <div>
+                <label class="form-label" data-i18n="org.logo">組織 Logo</label>
+                <p class="text-xs text-gray-400 mb-2" data-i18n="org.logo_desc">建議尺寸 300×100px，PNG 透明底，不超過 2MB</p>
+                <div id="logo-preview" class="hidden mb-3 p-3 border border-gray-200 rounded-lg bg-gray-50 flex items-center gap-3">
+                  <img id="logo-img" class="h-12 object-contain">
+                  <button type="button" onclick="clearAsset('logo')" class="btn-icon text-red-400 hover:text-red-600 ml-auto">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                  </button>
+                </div>
+                <label class="upload-zone cursor-pointer" id="logo-zone">
+                  <input type="file" id="logo-file" accept="image/*" class="hidden" onchange="previewAsset('logo', this)">
+                  <svg class="w-8 h-8 text-gray-300 mx-auto mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                  <p class="text-sm text-gray-400" data-i18n="org.logo_upload">點擊或拖曳上傳 Logo</p>
+                </label>
+              </div>
+
+              <!-- 簽名 -->
+              <div>
+                <label class="form-label" data-i18n="org.signature">負責人簽名圖</label>
+                <p class="text-xs text-gray-400 mb-2" data-i18n="org.signature_desc">PNG 透明底，將顯示於證書授權人欄位，不超過 2MB</p>
+                <div id="signature-preview" class="hidden mb-3 p-3 border border-gray-200 rounded-lg bg-gray-50 flex items-center gap-3">
+                  <img id="signature-img" class="h-12 object-contain">
+                  <button type="button" onclick="clearAsset('signature')" class="btn-icon text-red-400 hover:text-red-600 ml-auto">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                  </button>
+                </div>
+                <label class="upload-zone cursor-pointer" id="signature-zone">
+                  <input type="file" id="signature-file" accept="image/*" class="hidden" onchange="previewAsset('signature', this)">
+                  <svg class="w-8 h-8 text-gray-300 mx-auto mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                  <p class="text-sm text-gray-400" data-i18n="org.signature_upload">點擊或拖曳上傳簽名圖</p>
+                </label>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- 授權人資訊 -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="font-bold text-gray-800" data-i18n="org.authorized_person">授權人資訊</h3>
+            </div>
+            <div class="card-body grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="form-label" data-i18n="org.authorized_name_zh_TW">授權人姓名（繁體中文）</label>
+                <input id="auth_name_zh_TW" class="form-input">
+              </div>
+              <div>
+                <label class="form-label" data-i18n="org.authorized_name_en">授權人姓名（英文）</label>
+                <input id="auth_name_en" class="form-input">
+              </div>
+              <div>
+                <label class="form-label" data-i18n="org.authorized_name_zh_CN">授權人姓名（簡體中文）</label>
+                <input id="auth_name_zh_CN" class="form-input">
+              </div>
+              <div>
+                <label class="form-label" data-i18n="org.authorized_name_vi">授權人姓名（越文）</label>
+                <input id="auth_name_vi" class="form-input">
+              </div>
+              <div>
+                <label class="form-label" data-i18n="org.authorized_title_zh_TW">職稱（繁體中文）</label>
+                <input id="auth_title_zh_TW" class="form-input" placeholder="例：總經理">
+              </div>
+              <div>
+                <label class="form-label" data-i18n="org.authorized_title_en">職稱（英文）</label>
+                <input id="auth_title_en" class="form-input" placeholder="e.g. General Manager">
+              </div>
+              <div>
+                <label class="form-label" data-i18n="org.authorized_title_zh_CN">職稱（簡體中文）</label>
+                <input id="auth_title_zh_CN" class="form-input">
+              </div>
+              <div>
+                <label class="form-label" data-i18n="org.authorized_title_vi">職稱（越文）</label>
+                <input id="auth_title_vi" class="form-input" placeholder="e.g. Tổng Giám đốc">
+              </div>
+            </div>
+          </div>
+
+          <!-- 儲存按鈕 -->
+          <div class="flex justify-end gap-3 pb-6">
+            <button type="submit" id="btn-save" class="btn-primary px-8 py-2.5">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>
+              <span data-i18n="app.save">儲存</span>
+            </button>
+          </div>
+
+        </form>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/init.js"></script>
+  <script src="../assets/js/i18n.js"></script>
+  <script src="../assets/js/auth.js"></script>
+  <script src="../assets/js/components.js"></script>
+  <script>
+    let _orgData = {};
+    let _pendingUploads = {}; // { logo: File, signature: File }
+
+    (async () => {
+      await UI.initAdminPage({ active: 'org', title: i18n.t('org.title') });
+      await loadOrg();
+      setupDragDrop();
+    })();
+
+    async function loadOrg() {
+      try {
+        const doc = await db.collection(Collections.ORG).doc(APP_CONFIG.orgId).get();
+        if (doc.exists) {
+          _orgData = doc.data();
+          fillForm(_orgData);
+        } else {
+          // 預填成創永續預設值
+          fillForm({
+            name: { zh_TW: '成創永續股份有限公司', zh_CN: '成创永续股份有限公司', en: 'C.C.Sustain ESG Solution Co., Ltd.', vi: 'Công ty Cổ phần C.C.Sustain ESG' },
+            authorizedName:  { zh_TW: '陳志麟', en: 'CHIH LIN CHEN', zh_CN: '陈志麟', vi: 'CHIH LIN CHEN' },
+            authorizedTitle: { zh_TW: '總經理', en: 'General Manager', zh_CN: '总经理', vi: 'Tổng Giám đốc' },
+          });
+        }
+      } catch (e) { console.warn('Load org failed:', e); }
+    }
+
+    function fillForm(data) {
+      ['zh_TW','zh_CN','en','vi'].forEach(lang => {
+        const n = document.getElementById(`name_${lang}`);
+        if (n) n.value = data.name?.[lang] || '';
+        const an = document.getElementById(`auth_name_${lang}`);
+        if (an) an.value = data.authorizedName?.[lang] || '';
+        const at = document.getElementById(`auth_title_${lang}`);
+        if (at) at.value = data.authorizedTitle?.[lang] || '';
+      });
+      if (data.logoUrl)      showAssetPreview('logo',      data.logoUrl);
+      if (data.signatureUrl) showAssetPreview('signature', data.signatureUrl);
+    }
+
+    async function saveOrg(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-save');
+      btn.disabled = true;
+
+      try {
+        // 上傳圖片
+        const urls = {};
+        for (const [key, file] of Object.entries(_pendingUploads)) {
+          const ref = storage.ref(`orgs/${APP_CONFIG.orgId}/${key}`);
+          await ref.put(file);
+          urls[`${key}Url`] = await ref.getDownloadURL();
+        }
+
+        const payload = {
+          name: {
+            zh_TW: v('name_zh_TW'), zh_CN: v('name_zh_CN'),
+            en: v('name_en'), vi: v('name_vi'),
+          },
+          authorizedName: {
+            zh_TW: v('auth_name_zh_TW'), zh_CN: v('auth_name_zh_CN'),
+            en: v('auth_name_en'), vi: v('auth_name_vi'),
+          },
+          authorizedTitle: {
+            zh_TW: v('auth_title_zh_TW'), zh_CN: v('auth_title_zh_CN'),
+            en: v('auth_title_en'), vi: v('auth_title_vi'),
+          },
+          ...(_orgData.logoUrl      && { logoUrl:      _orgData.logoUrl }),
+          ...(_orgData.signatureUrl && { signatureUrl: _orgData.signatureUrl }),
+          ...urls,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        };
+
+        await db.collection(Collections.ORG).doc(APP_CONFIG.orgId).set(payload, { merge: true });
+        _orgData = { ..._orgData, ...payload };
+        _pendingUploads = {};
+        UI.toast(i18n.t('org.save_success'), 'success');
+      } catch (e) {
+        console.error(e);
+        UI.toast(i18n.t('org.save_error'), 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function v(id) { return document.getElementById(id)?.value?.trim() || ''; }
+
+    function previewAsset(type, input) {
+      const file = input.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) {
+        UI.toast('檔案不可超過 2MB', 'error'); return;
+      }
+      _pendingUploads[type] = file;
+      const url = URL.createObjectURL(file);
+      showAssetPreview(type, url);
+    }
+
+    function showAssetPreview(type, url) {
+      document.getElementById(`${type}-preview`).classList.remove('hidden');
+      document.getElementById(`${type}-img`).src = url;
+      document.getElementById(`${type}-zone`).style.display = 'none';
+    }
+
+    function clearAsset(type) {
+      document.getElementById(`${type}-preview`).classList.add('hidden');
+      document.getElementById(`${type}-zone`).style.display = '';
+      document.getElementById(`${type}-file`).value = '';
+      delete _pendingUploads[type];
+      delete _orgData[`${type}Url`];
+    }
+
+    function setupDragDrop() {
+      ['logo','signature'].forEach(type => {
+        const zone = document.getElementById(`${type}-zone`);
+        zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+        zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+        zone.addEventListener('drop', e => {
+          e.preventDefault(); zone.classList.remove('dragover');
+          const file = e.dataTransfer.files[0];
+          if (file && file.type.startsWith('image/')) {
+            _pendingUploads[type] = file;
+            showAssetPreview(type, URL.createObjectURL(file));
+          }
+        });
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>課程管理 — CCS 證書管理系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{'ccs-blue':'#3165A7','ccs-teal':'#1A9A83','ccs-orange':'#F3982D','ccs-gray':'#58595B'}}}}</script>
+  <link rel="stylesheet" href="../assets/css/app.css">
+</head>
+<body class="bg-gray-50">
+
+  <div id="loading-screen"><div class="spinner"></div></div>
+
+  <div id="app" style="display:none">
+    <div id="sidebar"></div>
+    <div id="main-content">
+      <div id="topbar"></div>
+      <main class="flex-1 p-6 flex flex-col items-center justify-center" style="min-height:60vh">
+        <div class="text-center max-w-md">
+          <div class="w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-6" style="background:linear-gradient(135deg,#eff6ff,#dbeafe)">
+            <svg class="w-12 h-12" style="color:#3165A7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+            </svg>
+          </div>
+          <h2 class="text-xl font-bold text-gray-800 mb-2" data-i18n="projects.title">課程管理</h2>
+          <p class="text-gray-500 text-sm mb-6" data-i18n="projects.coming_soon">課程管理功能將於 Phase 2 推出</p>
+          <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-left text-sm text-amber-800">
+            <p class="font-semibold mb-2">Phase 2 即將推出：</p>
+            <ul class="space-y-1 text-amber-700">
+              <li>• 建立課程專案（客戶、課程名稱、日期、時數）</li>
+              <li>• 下載 Excel 範本 → 批次上傳學員名單</li>
+              <li>• 單筆新增學員</li>
+              <li>• 證書編號自動流水</li>
+              <li>• 匯出名單 Excel</li>
+            </ul>
+          </div>
+          <a href="../index.html" class="btn-secondary mt-6 inline-flex">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+            <span data-i18n="app.back">返回儀表板</span>
+          </a>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/init.js"></script>
+  <script src="../assets/js/i18n.js"></script>
+  <script src="../assets/js/auth.js"></script>
+  <script src="../assets/js/components.js"></script>
+  <script>
+    (async () => {
+      await UI.initAdminPage({ active: 'projects', title: i18n.t('projects.title') });
+    })();
+  </script>
+</body>
+</html>
