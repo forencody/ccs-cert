@@ -20,7 +20,7 @@ const APP_CONFIG = {
 
   // 預設語系
   defaultLang: 'zh_TW',
-  supportedLangs: ['zh_TW', 'vi'],
+  supportedLangs: ['zh_TW', 'zh_CN', 'en', 'vi'],
 
   // 應用程式根路徑（自動偵測）
   // 本機開發時指向 '/'，GitHub Pages 時指向 '/ccs-cert/'

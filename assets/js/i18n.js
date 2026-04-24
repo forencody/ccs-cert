@@ -27,7 +27,8 @@ const i18n = (() => {
       if (val !== null) el.title = val;
     });
     // 更新 <html lang>
-    document.documentElement.lang = _lang === 'zh_TW' ? 'zh-TW' : 'vi';
+    const langMap = { zh_TW:'zh-TW', zh_CN:'zh-CN', en:'en', vi:'vi' };
+    document.documentElement.lang = langMap[_lang] || 'zh-TW';
   }
 
   return {
