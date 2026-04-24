@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>課程詳情 — CCS 證書管理系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{'ccs-blue':'#3165A7','ccs-teal':'#1A9A83','ccs-orange':'#F3982D','ccs-gray':'#58595B'}}}}</script>
+  <link rel="stylesheet" href="../assets/css/app.css">
+  <style>
+    .lang-tab { flex:1; padding:8px 4px; font-size:.78rem; font-weight:600; color:#6b7280; background:transparent; border:none; cursor:pointer; border-right:1px solid #e5e7eb; transition:all .15s; }
+    .lang-tab:last-child { border-right:none; }
+    .lang-tab.active { background:white; color:#3165A7; }
+    .info-label { font-size:.75rem; color:#6b7280; font-weight:500; margin-bottom:2px; }
+    .info-value { font-size:.95rem; color:#1f2937; font-weight:500; }
+    .drop-zone { border:2px dashed #d1d5db; border-radius:12px; padding:2rem; text-align:center; cursor:pointer; transition:all .2s; }
+    .drop-zone:hover, .drop-zone.drag-over { border-color:#3165A7; background:#eff6ff; }
+  </style>
+</head>
+<body class="bg-gray-50">
+
+  <div id="loading-screen"><div class="spinner"></div></div>
+
+  <div id="app" style="display:none">
+    <div id="sidebar" class="sidebar"></div>
+    <div id="main-content">
+      <div id="topbar"></div>
+      <main class="flex-1 p-6 space-y-5">
+
+        <!-- 返回 + 頁頭 -->
+        <div class="flex items-center gap-3">
+          <a href="index.html" class="btn-icon text-gray-500">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+          </a>
+          <div class="flex-1">
+            <h2 id="page-heading" class="text-xl font-bold text-gray-800">課程詳情</h2>
+            <p id="page-subheading" class="text-sm text-gray-500"></p>
+          </div>
+          <button onclick="openEditProjectModal()" class="btn-secondary">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            <span data-i18n="projects.edit_project">編輯課程資訊</span>
+          </button>
+        </div>
+
+        <!-- 課程資訊卡 -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div id="project-info-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-5">
+            <div><p class="info-label">客戶/企業</p><p id="info-client" class="info-value">—</p></div>
+            <div><p class="info-label">課程名稱</p><p id="info-course" class="info-value">—</p></div>
+            <div><p class="info-label">訓練日期</p><p id="info-date" class="info-value">—</p></div>
+            <div><p class="info-label">訓練時數</p><p id="info-hours" class="info-value">—</p></div>
+            <div><p class="info-label">證書編號前綴</p><p id="info-prefix" class="info-value">—</p></div>
+            <div><p class="info-label">狀態</p><p id="info-status" class="info-value">—</p></div>
+            <div><p class="info-label">學員總數</p><p id="info-count" class="info-value">—</p></div>
+            <div><p class="info-label">發證進度</p><p id="info-progress" class="info-value">—</p></div>
+          </div>
+        </div>
+
+        <!-- 學員名單 -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
+            <h3 class="font-bold text-gray-800" data-i18n="projects.students_section">學員名單</h3>
+            <div class="flex gap-2 flex-wrap">
+              <button onclick="downloadTemplate()" class="btn-secondary text-sm py-1.5">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                <span data-i18n="projects.download_template_btn">下載範本</span>
+              </button>
+              <button onclick="openImportModal()" class="btn-secondary text-sm py-1.5">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                <span data-i18n="projects.import_excel_btn">匯入 Excel</span>
+              </button>
+              <button onclick="exportExcel()" class="btn-secondary text-sm py-1.5">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <span data-i18n="projects.export_excel_btn">匯出名單</span>
+              </button>
+              <button onclick="openAddStudentModal()" class="btn-primary text-sm py-1.5">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                <span data-i18n="projects.add_student_btn">新增學員</span>
+              </button>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th data-i18n="projects.col_name_zh">姓名（繁中）</th>
+                  <th data-i18n="projects.col_name_en">姓名（英文）</th>
+                  <th data-i18n="projects.col_email">Email</th>
+                  <th data-i18n="projects.col_cert_no">證書編號</th>
+                  <th data-i18n="projects.col_student_status">狀態</th>
+                  <th data-i18n="projects.col_actions">操作</th>
+                </tr>
+              </thead>
+              <tbody id="students-tbody">
+                <tr><td colspan="7" class="text-center py-12"><div class="spinner mx-auto"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ── 編輯課程 Modal ── -->
+  <div id="project-modal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width:640px">
+      <div class="modal-header">
+        <h3 class="modal-title" data-i18n="projects.edit_title">編輯課程專案</h3>
+        <button onclick="UI.hideModal('project-modal')" class="btn-icon"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="modal-body space-y-4">
+        <div>
+          <label class="form-label">客戶/企業名稱 <span class="text-red-400">*</span></label>
+          <input id="p-client" type="text" class="form-input" placeholder="例：康舒科技股份有限公司">
+        </div>
+        <div>
+          <label class="form-label">課程名稱</label>
+          <div class="border border-gray-200 rounded-lg overflow-hidden">
+            <div class="flex border-b border-gray-200 bg-gray-50">
+              <button type="button" onclick="switchPLang('zh_TW')" id="ptab-zh_TW" class="lang-tab active">繁中</button>
+              <button type="button" onclick="switchPLang('zh_CN')" id="ptab-zh_CN" class="lang-tab">簡中</button>
+              <button type="button" onclick="switchPLang('en')"    id="ptab-en"    class="lang-tab">EN</button>
+              <button type="button" onclick="switchPLang('vi')"    id="ptab-vi"    class="lang-tab">VI</button>
+            </div>
+            <div class="p-3">
+              <input id="p-name-zh_TW" type="text" class="form-input" placeholder="請輸入課程名稱">
+              <input id="p-name-zh_CN" type="text" class="form-input hidden" placeholder="请输入课程名称">
+              <input id="p-name-en"    type="text" class="form-input hidden" placeholder="Enter course name">
+              <input id="p-name-vi"    type="text" class="form-input hidden" placeholder="Nhập tên khóa học">
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="form-label">訓練日期 <span class="text-red-400">*</span></label>
+            <input id="p-date" type="date" class="form-input">
+          </div>
+          <div>
+            <label class="form-label">訓練時數</label>
+            <div class="flex items-center gap-2">
+              <input id="p-hours" type="number" min="1" max="999" class="form-input" placeholder="8">
+              <span class="text-sm text-gray-500 whitespace-nowrap">小時</span>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="form-label">證書編號前綴</label>
+            <input id="p-prefix" type="text" class="form-input" placeholder="例：CCS">
+            <p class="text-xs text-gray-400 mt-1">格式：前綴-YYYYMM-序號</p>
+          </div>
+          <div>
+            <label class="form-label">專案狀態</label>
+            <select id="p-status" class="form-select">
+              <option value="draft">草稿</option>
+              <option value="active">進行中</option>
+              <option value="completed">已完成</option>
+            </select>
+          </div>
+        </div>
+        <div id="p-error" class="hidden text-sm text-red-500 bg-red-50 p-3 rounded-lg"></div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="UI.hideModal('project-modal')" class="btn-secondary">取消</button>
+        <button id="btn-save-p" onclick="saveProjectEdit()" class="btn-primary">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 新增/編輯學員 Modal ── -->
+  <div id="student-modal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width:560px">
+      <div class="modal-header">
+        <h3 id="s-modal-title" class="modal-title">新增學員</h3>
+        <button onclick="UI.hideModal('student-modal')" class="btn-icon"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="modal-body space-y-4">
+        <div class="border border-gray-200 rounded-lg overflow-hidden">
+          <div class="flex border-b border-gray-200 bg-gray-50">
+            <button type="button" onclick="switchSLang('zh_TW')" id="stab-zh_TW" class="lang-tab active">繁中</button>
+            <button type="button" onclick="switchSLang('zh_CN')" id="stab-zh_CN" class="lang-tab">簡中</button>
+            <button type="button" onclick="switchSLang('en')"    id="stab-en"    class="lang-tab">EN</button>
+            <button type="button" onclick="switchSLang('vi')"    id="stab-vi"    class="lang-tab">VI</button>
+          </div>
+          <div class="p-3 space-y-2">
+            <input id="s-name-zh_TW" type="text" class="form-input" placeholder="姓名（繁體中文）">
+            <input id="s-name-zh_CN" type="text" class="form-input hidden" placeholder="姓名（简体中文）">
+            <input id="s-name-en"    type="text" class="form-input hidden" placeholder="Full Name (English)">
+            <input id="s-name-vi"    type="text" class="form-input hidden" placeholder="Họ và tên (Tiếng Việt)">
+          </div>
+        </div>
+        <div>
+          <label class="form-label">Email</label>
+          <input id="s-email" type="email" class="form-input" placeholder="學員 Email（用於查閱證書，可留空）">
+        </div>
+        <div>
+          <label class="form-label">證書編號</label>
+          <input id="s-cert" type="text" class="form-input" placeholder="留空則自動產生">
+        </div>
+        <div id="s-error" class="hidden text-sm text-red-500 bg-red-50 p-3 rounded-lg"></div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="UI.hideModal('student-modal')" class="btn-secondary">取消</button>
+        <button id="btn-save-s" onclick="saveStudent()" class="btn-primary">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 匯入 Excel Modal ── -->
+  <div id="import-modal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width:720px">
+      <div class="modal-header">
+        <h3 class="modal-title" data-i18n="projects.import_title">匯入學員名單</h3>
+        <button onclick="UI.hideModal('import-modal')" class="btn-icon"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="modal-body">
+
+        <!-- 選擇檔案 -->
+        <div id="import-upload-section">
+          <p class="text-sm text-gray-500 mb-4" data-i18n="projects.import_desc">
+            請先下載 Excel 範本，填寫後上傳。支援 .xlsx / .xls 格式。
+          </p>
+          <div id="drop-zone" class="drop-zone"
+            ondragover="event.preventDefault(); this.classList.add('drag-over')"
+            ondragleave="this.classList.remove('drag-over')"
+            ondrop="handleFileDrop(event)">
+            <svg class="w-10 h-10 text-gray-400 mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <p class="text-sm text-gray-500 mb-3">拖曳 Excel 檔案至此，或</p>
+            <label class="btn-secondary cursor-pointer">
+              選擇檔案
+              <input type="file" accept=".xlsx,.xls" class="hidden" onchange="handleFileInput(event)">
+            </label>
+          </div>
+        </div>
+
+        <!-- 預覽 -->
+        <div id="import-preview-section" class="hidden">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-sm font-medium text-gray-700" id="import-count-msg"></p>
+            <button onclick="resetImport()" class="text-sm text-gray-400 hover:text-gray-600">重新選擇</button>
+          </div>
+          <div class="overflow-x-auto border border-gray-200 rounded-lg max-h-64">
+            <table class="data-table text-xs">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>姓名（繁中）</th>
+                  <th>姓名（簡中）</th>
+                  <th>姓名（英文）</th>
+                  <th>姓名（越文）</th>
+                  <th>Email</th>
+                </tr>
+              </thead>
+              <tbody id="import-preview-tbody"></tbody>
+            </table>
+          </div>
+          <div id="import-error" class="hidden mt-3 text-sm text-red-500 bg-red-50 p-3 rounded-lg"></div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button onclick="UI.hideModal('import-modal')" class="btn-secondary">取消</button>
+        <button id="btn-confirm-import" onclick="confirmImport()" class="btn-primary hidden">
+          <span data-i18n="projects.import_confirm_btn">確認匯入</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 刪除確認 ── -->
+  <div id="del-student-modal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width:420px">
+      <div class="modal-header">
+        <h3 class="modal-title text-red-600">確認刪除</h3>
+        <button onclick="UI.hideModal('del-student-modal')" class="btn-icon"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="modal-body"><p id="del-student-msg" class="text-gray-600 text-sm"></p></div>
+      <div class="modal-footer">
+        <button onclick="UI.hideModal('del-student-modal')" class="btn-secondary">取消</button>
+        <button id="btn-del-student" class="btn-danger">刪除</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <!-- SheetJS for Excel import/export -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/init.js"></script>
+  <script src="../assets/js/i18n.js"></script>
+  <script src="../assets/js/auth.js"></script>
+  <script src="../assets/js/components.js"></script>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const PROJECT_ID = params.get('id');
+
+    let _project = null;
+    let _students = [];
+    let _editingStudentId = null;
+    let _importData = [];
+
+    (async () => {
+      await UI.initAdminPage({ active: 'projects', titleKey: 'projects.title' });
+      if (!PROJECT_ID) { window.location.href = 'index.html'; return; }
+      await loadProject();
+      await loadStudents();
+    })();
+
+    // ── 載入課程資訊 ──────────────────────────────
+    async function loadProject() {
+      const doc = await db.collection(Collections.PROJECTS).doc(PROJECT_ID).get();
+      if (!doc.exists) { window.location.href = 'index.html'; return; }
+      _project = { id: doc.id, ...doc.data() };
+      renderProjectInfo();
+    }
+
+    function renderProjectInfo() {
+      const p = _project;
+      const lang = i18n.lang;
+      const name = p.courseName?.[lang] || p.courseName?.zh_TW || '—';
+      const date = p.trainingDate
+        ? new Date(p.trainingDate + 'T00:00:00').toLocaleDateString('zh-TW') : '—';
+
+      document.getElementById('page-heading').textContent = name !== '—' ? name : p.clientName;
+      document.getElementById('page-subheading').textContent = p.clientName;
+      document.getElementById('info-client').textContent  = p.clientName || '—';
+      document.getElementById('info-course').textContent  = name;
+      document.getElementById('info-date').textContent    = date;
+      document.getElementById('info-hours').textContent   = p.hours ? `${p.hours} 小時` : '—';
+      document.getElementById('info-prefix').textContent  = p.certPrefix || '（自動）';
+      document.getElementById('info-count').textContent   = p.studentCount || 0;
+      const gen = p.generatedCount || 0;
+      const tot = p.studentCount || 0;
+      document.getElementById('info-progress').textContent = tot > 0 ? `${gen}/${tot} 已發證` : '—';
+
+      const badgeMap = { draft:'草稿', active:'進行中', completed:'已完成' };
+      document.getElementById('info-status').textContent = badgeMap[p.status] || '—';
+    }
+
+    // ── 載入學員 ──────────────────────────────────
+    async function loadStudents() {
+      try {
+        const snap = await db.collection(Collections.PROJECTS).doc(PROJECT_ID)
+          .collection(Collections.STUDENTS).orderBy('createdAt', 'asc').get();
+        _students = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderStudents();
+      } catch (e) {
+        console.error(e);
+        document.getElementById('students-tbody').innerHTML =
+          `<tr><td colspan="7" class="text-center py-8 text-red-400 text-sm">載入失敗</td></tr>`;
+      }
+    }
+
+    function renderStudents() {
+      const tbody = document.getElementById('students-tbody');
+      if (_students.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-16 text-gray-400">
+          <svg class="w-10 h-10 mx-auto mb-3 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <p class="font-medium">${i18n.t('projects.no_students')}</p>
+        </td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = _students.map((s, idx) => {
+        const nameZh = s.nameZhTW || '—';
+        const nameEn = s.nameEn  || '—';
+        const statusBadge = s.status === 'generated'
+          ? `<span class="badge badge-completed">${i18n.t('projects.student_status_generated')}</span>`
+          : `<span class="badge badge-draft">${i18n.t('projects.student_status_pending')}</span>`;
+        const nameEsc = (s.nameZhTW || '').replace(/'/g,"\\'");
+        return `<tr>
+          <td class="text-gray-400 text-xs">${idx + 1}</td>
+          <td class="font-medium">${nameZh}</td>
+          <td class="text-gray-500">${nameEn}</td>
+          <td class="text-gray-500 text-xs">${s.email || '—'}</td>
+          <td class="font-mono text-xs">${s.certNumber || '—'}</td>
+          <td>${statusBadge}</td>
+          <td>
+            <div class="flex gap-1">
+              <button onclick="openEditStudentModal('${s.id}')" class="btn-icon" title="編輯">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              </button>
+              <button onclick="confirmDeleteStudent('${s.id}','${nameEsc}')" class="btn-icon text-red-400 hover:text-red-600 hover:bg-red-50" title="刪除">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+              </button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    // ── 證書編號產生 ──────────────────────────────
+    function genCertNumber(seq) {
+      const prefix = (_project.certPrefix || 'CCS').toUpperCase();
+      const now = new Date();
+      const ym = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0');
+      return `${prefix}-${ym}-${String(seq).padStart(3, '0')}`;
+    }
+
+    // ── 新增/編輯學員 Modal ───────────────────────
+    function switchSLang(lang) {
+      ['zh_TW','zh_CN','en','vi'].forEach(l => {
+        document.getElementById('stab-'+l).classList.toggle('active', l === lang);
+        document.getElementById('s-name-'+l).classList.toggle('hidden', l !== lang);
+      });
+    }
+
+    function openAddStudentModal() {
+      _editingStudentId = null;
+      document.getElementById('s-modal-title').textContent = i18n.t('projects.add_student_title');
+      ['s-name-zh_TW','s-name-zh_CN','s-name-en','s-name-vi','s-email','s-cert']
+        .forEach(id => document.getElementById(id).value = '');
+      document.getElementById('s-error').classList.add('hidden');
+      switchSLang('zh_TW');
+      UI.showModal('student-modal');
+    }
+
+    function openEditStudentModal(id) {
+      const s = _students.find(x => x.id === id);
+      if (!s) return;
+      _editingStudentId = id;
+      document.getElementById('s-modal-title').textContent = i18n.t('projects.edit_student_title');
+      document.getElementById('s-name-zh_TW').value = s.nameZhTW || '';
+      document.getElementById('s-name-zh_CN').value = s.nameZhCN || '';
+      document.getElementById('s-name-en').value    = s.nameEn   || '';
+      document.getElementById('s-name-vi').value    = s.nameVi   || '';
+      document.getElementById('s-email').value = s.email || '';
+      document.getElementById('s-cert').value  = s.certNumber || '';
+      document.getElementById('s-error').classList.add('hidden');
+      switchSLang('zh_TW');
+      UI.showModal('student-modal');
+    }
+
+    async function saveStudent() {
+      const nameZhTW = document.getElementById('s-name-zh_TW').value.trim();
+      if (!nameZhTW) {
+        const el = document.getElementById('s-error');
+        el.textContent = '繁體中文姓名為必填';
+        el.classList.remove('hidden');
+        return;
+      }
+      const btn = document.getElementById('btn-save-s');
+      btn.disabled = true;
+
+      try {
+        if (_editingStudentId) {
+          const data = {
+            nameZhTW,
+            nameZhCN: document.getElementById('s-name-zh_CN').value.trim(),
+            nameEn:   document.getElementById('s-name-en').value.trim(),
+            nameVi:   document.getElementById('s-name-vi').value.trim(),
+            email:    document.getElementById('s-email').value.trim().toLowerCase(),
+            certNumber: document.getElementById('s-cert').value.trim(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          };
+          await db.collection(Collections.PROJECTS).doc(PROJECT_ID)
+            .collection(Collections.STUDENTS).doc(_editingStudentId).update(data);
+          const idx = _students.findIndex(x => x.id === _editingStudentId);
+          if (idx >= 0) _students[idx] = { ..._students[idx], ...data };
+        } else {
+          const seq = (_project.studentCount || 0) + 1;
+          const certNumber = document.getElementById('s-cert').value.trim() || genCertNumber(seq);
+          const data = {
+            nameZhTW,
+            nameZhCN: document.getElementById('s-name-zh_CN').value.trim(),
+            nameEn:   document.getElementById('s-name-en').value.trim(),
+            nameVi:   document.getElementById('s-name-vi').value.trim(),
+            email:    document.getElementById('s-email').value.trim().toLowerCase(),
+            certNumber,
+            status: 'pending',
+            pdfUrls: {},
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          };
+          const ref = await db.collection(Collections.PROJECTS).doc(PROJECT_ID)
+            .collection(Collections.STUDENTS).add(data);
+          _students.push({ id: ref.id, ...data });
+          // 更新 project studentCount
+          await db.collection(Collections.PROJECTS).doc(PROJECT_ID).update({
+            studentCount: firebase.firestore.FieldValue.increment(1)
+          });
+          _project.studentCount = seq;
+          document.getElementById('info-count').textContent = seq;
+        }
+        UI.hideModal('student-modal');
+        UI.toast(i18n.t('projects.student_save_success'), 'success');
+        renderStudents();
+      } catch (e) {
+        console.error(e);
+        const el = document.getElementById('s-error');
+        el.textContent = e.message || '儲存失敗';
+        el.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function confirmDeleteStudent(id, name) {
+      document.getElementById('del-student-msg').textContent =
+        i18n.t('projects.student_delete_confirm').replace('{name}', name);
+      document.getElementById('btn-del-student').onclick = () => deleteStudent(id);
+      UI.showModal('del-student-modal');
+    }
+
+    async function deleteStudent(id) {
+      try {
+        await db.collection(Collections.PROJECTS).doc(PROJECT_ID)
+          .collection(Collections.STUDENTS).doc(id).delete();
+        _students = _students.filter(x => x.id !== id);
+        await db.collection(Collections.PROJECTS).doc(PROJECT_ID).update({
+          studentCount: firebase.firestore.FieldValue.increment(-1)
+        });
+        _project.studentCount = Math.max(0, (_project.studentCount || 1) - 1);
+        document.getElementById('info-count').textContent = _project.studentCount;
+        UI.hideModal('del-student-modal');
+        UI.toast(i18n.t('projects.student_delete_success'), 'success');
+        renderStudents();
+      } catch (e) {
+        UI.toast('刪除失敗：' + e.message, 'error');
+      }
+    }
+
+    // ── 編輯課程 Modal ────────────────────────────
+    function switchPLang(lang) {
+      ['zh_TW','zh_CN','en','vi'].forEach(l => {
+        document.getElementById('ptab-'+l).classList.toggle('active', l === lang);
+        document.getElementById('p-name-'+l).classList.toggle('hidden', l !== lang);
+      });
+    }
+
+    function openEditProjectModal() {
+      const p = _project;
+      document.getElementById('p-client').value = p.clientName || '';
+      ['zh_TW','zh_CN','en','vi'].forEach(l =>
+        document.getElementById('p-name-'+l).value = p.courseName?.[l] || '');
+      document.getElementById('p-date').value   = p.trainingDate || '';
+      document.getElementById('p-hours').value  = p.hours || '';
+      document.getElementById('p-prefix').value = p.certPrefix || '';
+      document.getElementById('p-status').value = p.status || 'draft';
+      document.getElementById('p-error').classList.add('hidden');
+      switchPLang('zh_TW');
+      UI.showModal('project-modal');
+    }
+
+    async function saveProjectEdit() {
+      const clientName   = document.getElementById('p-client').value.trim();
+      const trainingDate = document.getElementById('p-date').value;
+      if (!clientName || !trainingDate) {
+        const el = document.getElementById('p-error');
+        el.textContent = '客戶名稱與訓練日期為必填';
+        el.classList.remove('hidden');
+        return;
+      }
+      const btn = document.getElementById('btn-save-p');
+      btn.disabled = true;
+      const data = {
+        clientName,
+        courseName: {
+          zh_TW: document.getElementById('p-name-zh_TW').value.trim(),
+          zh_CN: document.getElementById('p-name-zh_CN').value.trim(),
+          en:    document.getElementById('p-name-en').value.trim(),
+          vi:    document.getElementById('p-name-vi').value.trim(),
+        },
+        trainingDate,
+        hours: parseInt(document.getElementById('p-hours').value) || 0,
+        certPrefix: document.getElementById('p-prefix').value.trim().toUpperCase(),
+        status: document.getElementById('p-status').value,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+      try {
+        await db.collection(Collections.PROJECTS).doc(PROJECT_ID).update(data);
+        _project = { ..._project, ...data };
+        renderProjectInfo();
+        UI.hideModal('project-modal');
+        UI.toast(i18n.t('projects.save_success'), 'success');
+      } catch (e) {
+        const el = document.getElementById('p-error');
+        el.textContent = e.message || '儲存失敗';
+        el.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // ── Excel 下載範本 ────────────────────────────
+    function downloadTemplate() {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet([
+        ['姓名（繁體中文）','姓名（簡體中文）','姓名（英文）','姓名（越文）','Email'],
+        ['王小明','王小明','Wang Xiao Ming','Vương Tiểu Minh','example@email.com'],
+      ]);
+      ws['!cols'] = [24,24,24,24,30].map(w => ({ wch: w }));
+      XLSX.utils.book_append_sheet(wb, ws, '學員名單');
+      const prefix = _project?.certPrefix || 'CCS';
+      XLSX.writeFile(wb, `${prefix}_學員名單範本.xlsx`);
+    }
+
+    // ── Excel 匯出名單 ────────────────────────────
+    function exportExcel() {
+      if (_students.length === 0) { UI.toast('尚無學員資料', 'warning'); return; }
+      const rows = [['#','姓名（繁中）','姓名（簡中）','姓名（英文）','姓名（越文）','Email','證書編號','狀態']];
+      _students.forEach((s, i) => rows.push([
+        i + 1,
+        s.nameZhTW || '',
+        s.nameZhCN || '',
+        s.nameEn   || '',
+        s.nameVi   || '',
+        s.email    || '',
+        s.certNumber || '',
+        s.status === 'generated' ? '已發證' : '待發證',
+      ]));
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [4,20,20,24,24,28,16,8].map(w => ({ wch: w }));
+      XLSX.utils.book_append_sheet(wb, ws, '學員名單');
+      const client = _project?.clientName || '';
+      const date   = _project?.trainingDate || '';
+      XLSX.writeFile(wb, `${client}_${date}_學員名單.xlsx`);
+    }
+
+    // ── Excel 匯入 ────────────────────────────────
+    function openImportModal() {
+      resetImport();
+      UI.showModal('import-modal');
+    }
+
+    function resetImport() {
+      _importData = [];
+      document.getElementById('import-upload-section').classList.remove('hidden');
+      document.getElementById('import-preview-section').classList.add('hidden');
+      document.getElementById('btn-confirm-import').classList.add('hidden');
+      document.getElementById('import-error').classList.add('hidden');
+      document.getElementById('drop-zone').classList.remove('drag-over');
+    }
+
+    function handleFileDrop(e) {
+      e.preventDefault();
+      document.getElementById('drop-zone').classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) parseExcel(file);
+    }
+
+    function handleFileInput(e) {
+      const file = e.target.files[0];
+      if (file) parseExcel(file);
+    }
+
+    function parseExcel(file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const wb = XLSX.read(e.target.result, { type: 'array' });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+          // 跳過第一行（標題）
+          const data = rows.slice(1).filter(r => r.some(c => String(c).trim()));
+          if (data.length === 0) {
+            showImportError('檔案沒有有效資料，請確認填寫了第 2 列以後的資料');
+            return;
+          }
+          _importData = data.map(r => ({
+            nameZhTW: String(r[0] || '').trim(),
+            nameZhCN: String(r[1] || '').trim(),
+            nameEn:   String(r[2] || '').trim(),
+            nameVi:   String(r[3] || '').trim(),
+            email:    String(r[4] || '').trim().toLowerCase(),
+          })).filter(s => s.nameZhTW);
+
+          if (_importData.length === 0) {
+            showImportError('沒有有效的繁體中文姓名，請確認第一欄填寫了姓名');
+            return;
+          }
+
+          // 顯示預覽
+          document.getElementById('import-upload-section').classList.add('hidden');
+          document.getElementById('import-preview-section').classList.remove('hidden');
+          document.getElementById('import-count-msg').textContent =
+            i18n.t('projects.import_rows').replace('{count}', _importData.length);
+          document.getElementById('import-preview-tbody').innerHTML = _importData.map((s, i) =>
+            `<tr>
+              <td>${i+1}</td>
+              <td>${s.nameZhTW}</td>
+              <td>${s.nameZhCN || '—'}</td>
+              <td>${s.nameEn   || '—'}</td>
+              <td>${s.nameVi   || '—'}</td>
+              <td>${s.email    || '—'}</td>
+            </tr>`
+          ).join('');
+          document.getElementById('btn-confirm-import').classList.remove('hidden');
+        } catch (err) {
+          showImportError('解析失敗：' + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function showImportError(msg) {
+      const el = document.getElementById('import-error');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    async function confirmImport() {
+      if (_importData.length === 0) return;
+      const btn = document.getElementById('btn-confirm-import');
+      btn.disabled = true;
+      btn.querySelector('span').textContent = i18n.t('projects.import_importing');
+
+      try {
+        const batch = db.batch();
+        const baseSeq = _project.studentCount || 0;
+
+        _importData.forEach((s, i) => {
+          const seq = baseSeq + i + 1;
+          const certNumber = genCertNumber(seq);
+          const ref = db.collection(Collections.PROJECTS).doc(PROJECT_ID)
+            .collection(Collections.STUDENTS).doc();
+          batch.set(ref, {
+            ...s,
+            certNumber,
+            status: 'pending',
+            pdfUrls: {},
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+        });
+
+        const projRef = db.collection(Collections.PROJECTS).doc(PROJECT_ID);
+        batch.update(projRef, {
+          studentCount: firebase.firestore.FieldValue.increment(_importData.length)
+        });
+
+        await batch.commit();
+
+        _project.studentCount = (baseSeq + _importData.length);
+        document.getElementById('info-count').textContent = _project.studentCount;
+
+        UI.hideModal('import-modal');
+        UI.toast(i18n.t('projects.import_success').replace('{count}', _importData.length), 'success');
+        await loadStudents();
+      } catch (e) {
+        console.error(e);
+        showImportError(i18n.t('projects.import_error') + '：' + e.message);
+        btn.disabled = false;
+        btn.querySelector('span').textContent = i18n.t('projects.import_confirm_btn');
+      }
+    }
+  </script>
+</body>
+</html>

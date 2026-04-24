@@ -7,40 +7,162 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config={theme:{extend:{colors:{'ccs-blue':'#3165A7','ccs-teal':'#1A9A83','ccs-orange':'#F3982D','ccs-gray':'#58595B'}}}}</script>
   <link rel="stylesheet" href="../assets/css/app.css">
+  <style>
+    .filter-btn { padding:6px 14px; border-radius:8px; font-size:.8rem; font-weight:500; border:1px solid #e5e7eb; background:white; color:#6b7280; cursor:pointer; transition:all .15s; }
+    .filter-btn:hover { border-color:#3165A7; color:#3165A7; }
+    .filter-btn.active { background:#3165A7; color:white; border-color:#3165A7; }
+    .lang-tab { flex:1; padding:8px 4px; font-size:.78rem; font-weight:600; color:#6b7280; background:transparent; border:none; cursor:pointer; border-right:1px solid #e5e7eb; transition:all .15s; }
+    .lang-tab:last-child { border-right:none; }
+    .lang-tab.active { background:white; color:#3165A7; }
+    .prog-bg { background:#e5e7eb; border-radius:4px; height:6px; }
+    .prog-fill { background:#1A9A83; border-radius:4px; height:6px; transition:width .3s; }
+  </style>
 </head>
 <body class="bg-gray-50">
 
   <div id="loading-screen"><div class="spinner"></div></div>
 
   <div id="app" style="display:none">
-    <div id="sidebar"></div>
+    <div id="sidebar" class="sidebar"></div>
     <div id="main-content">
       <div id="topbar"></div>
-      <main class="flex-1 p-6 flex flex-col items-center justify-center" style="min-height:60vh">
-        <div class="text-center max-w-md">
-          <div class="w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-6" style="background:linear-gradient(135deg,#eff6ff,#dbeafe)">
-            <svg class="w-12 h-12" style="color:#3165A7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-            </svg>
+      <main class="flex-1 p-6">
+
+        <!-- 頁面標題列 -->
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h2 class="text-xl font-bold text-gray-800" data-i18n="projects.title">課程管理</h2>
+            <p class="text-sm text-gray-500 mt-0.5" id="project-count"></p>
           </div>
-          <h2 class="text-xl font-bold text-gray-800 mb-2" data-i18n="projects.title">課程管理</h2>
-          <p class="text-gray-500 text-sm mb-6" data-i18n="projects.coming_soon">課程管理功能將於 Phase 2 推出</p>
-          <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-left text-sm text-amber-800">
-            <p class="font-semibold mb-2">Phase 2 即將推出：</p>
-            <ul class="space-y-1 text-amber-700">
-              <li>• 建立課程專案（客戶、課程名稱、日期、時數）</li>
-              <li>• 下載 Excel 範本 → 批次上傳學員名單</li>
-              <li>• 單筆新增學員</li>
-              <li>• 證書編號自動流水</li>
-              <li>• 匯出名單 Excel</li>
-            </ul>
-          </div>
-          <a href="../index.html" class="btn-secondary mt-6 inline-flex">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-            <span data-i18n="app.back">返回儀表板</span>
-          </a>
+          <button onclick="openAddModal()" class="btn-primary">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            <span data-i18n="projects.add_btn">新增課程</span>
+          </button>
         </div>
+
+        <!-- 搜尋 + 篩選 -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-4 p-4">
+          <div class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+              <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input id="search-input" type="text" placeholder="搜尋課程或企業名稱..."
+                class="form-input pl-9" oninput="filterProjects()">
+            </div>
+            <div class="flex gap-2 flex-wrap">
+              <button onclick="setFilter('all')" id="filter-all" class="filter-btn active" data-i18n="projects.filter_all">全部</button>
+              <button onclick="setFilter('draft')" id="filter-draft" class="filter-btn" data-i18n="projects.status_draft">草稿</button>
+              <button onclick="setFilter('active')" id="filter-active" class="filter-btn" data-i18n="projects.status_active">進行中</button>
+              <button onclick="setFilter('completed')" id="filter-completed" class="filter-btn" data-i18n="projects.status_completed">已完成</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 課程列表 -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th data-i18n="projects.col_client">客戶/企業</th>
+                  <th data-i18n="projects.col_course">課程名稱</th>
+                  <th data-i18n="projects.col_date">上課日期</th>
+                  <th class="text-center" data-i18n="projects.col_students">學員數</th>
+                  <th data-i18n="projects.col_progress">發證進度</th>
+                  <th data-i18n="projects.col_status">狀態</th>
+                  <th data-i18n="projects.col_actions">操作</th>
+                </tr>
+              </thead>
+              <tbody id="projects-tbody">
+                <tr><td colspan="7" class="text-center py-12"><div class="spinner mx-auto"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </main>
+    </div>
+  </div>
+
+  <!-- ── 新增/編輯 Modal ── -->
+  <div id="project-modal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width:640px">
+      <div class="modal-header">
+        <h3 id="modal-title" class="modal-title"></h3>
+        <button onclick="UI.hideModal('project-modal')" class="btn-icon"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="modal-body space-y-4">
+        <div>
+          <label class="form-label">客戶/企業名稱 <span class="text-red-400">*</span></label>
+          <input id="f-client" type="text" class="form-input" placeholder="例：康舒科技股份有限公司">
+        </div>
+        <div>
+          <label class="form-label">課程名稱</label>
+          <div class="border border-gray-200 rounded-lg overflow-hidden">
+            <div class="flex border-b border-gray-200 bg-gray-50">
+              <button type="button" onclick="switchLangTab('zh_TW')" id="tab-zh_TW" class="lang-tab active">繁中</button>
+              <button type="button" onclick="switchLangTab('zh_CN')" id="tab-zh_CN" class="lang-tab">簡中</button>
+              <button type="button" onclick="switchLangTab('en')" id="tab-en" class="lang-tab">EN</button>
+              <button type="button" onclick="switchLangTab('vi')" id="tab-vi" class="lang-tab">VI</button>
+            </div>
+            <div class="p-3">
+              <input id="f-name-zh_TW" type="text" class="form-input" placeholder="請輸入課程名稱">
+              <input id="f-name-zh_CN" type="text" class="form-input hidden" placeholder="请输入课程名称">
+              <input id="f-name-en"    type="text" class="form-input hidden" placeholder="Enter course name">
+              <input id="f-name-vi"    type="text" class="form-input hidden" placeholder="Nhập tên khóa học">
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="form-label">訓練日期 <span class="text-red-400">*</span></label>
+            <input id="f-date" type="date" class="form-input">
+          </div>
+          <div>
+            <label class="form-label">訓練時數</label>
+            <div class="flex items-center gap-2">
+              <input id="f-hours" type="number" min="1" max="999" class="form-input" placeholder="8">
+              <span class="text-sm text-gray-500 whitespace-nowrap">小時</span>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="form-label">證書編號前綴</label>
+            <input id="f-prefix" type="text" class="form-input" placeholder="例：CCS（留空自動產生）">
+            <p class="text-xs text-gray-400 mt-1">格式：前綴-YYYYMM-序號</p>
+          </div>
+          <div>
+            <label class="form-label">專案狀態</label>
+            <select id="f-status" class="form-select">
+              <option value="draft">草稿</option>
+              <option value="active">進行中</option>
+              <option value="completed">已完成</option>
+            </select>
+          </div>
+        </div>
+        <div id="modal-error" class="hidden text-sm text-red-500 bg-red-50 p-3 rounded-lg"></div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="UI.hideModal('project-modal')" class="btn-secondary">取消</button>
+        <button id="btn-save-project" onclick="saveProject()" class="btn-primary">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 刪除確認 Modal ── -->
+  <div id="delete-modal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width:420px">
+      <div class="modal-header">
+        <h3 class="modal-title text-red-600">確認刪除</h3>
+        <button onclick="UI.hideModal('delete-modal')" class="btn-icon"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <p id="delete-msg" class="text-gray-600 text-sm"></p>
+      </div>
+      <div class="modal-footer">
+        <button onclick="UI.hideModal('delete-modal')" class="btn-secondary">取消</button>
+        <button id="btn-confirm-delete" class="btn-danger">刪除</button>
+      </div>
     </div>
   </div>
 
@@ -53,10 +175,217 @@
   <script src="../assets/js/i18n.js"></script>
   <script src="../assets/js/auth.js"></script>
   <script src="../assets/js/components.js"></script>
+
   <script>
+    let _allProjects = [];
+    let _currentFilter = 'all';
+    let _editingId = null;
+
     (async () => {
       await UI.initAdminPage({ active: 'projects', titleKey: 'projects.title' });
+      await loadProjects();
     })();
+
+    async function loadProjects() {
+      try {
+        const snap = await db.collection(Collections.PROJECTS)
+          .where('orgId', '==', APP_CONFIG.orgId)
+          .orderBy('createdAt', 'desc').get();
+        _allProjects = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderProjects();
+      } catch (e) {
+        console.error(e);
+        document.getElementById('projects-tbody').innerHTML =
+          `<tr><td colspan="7" class="text-center py-8 text-red-400 text-sm">載入失敗，請重新整理頁面</td></tr>`;
+      }
+    }
+
+    function setFilter(f) {
+      _currentFilter = f;
+      ['all','draft','active','completed'].forEach(k =>
+        document.getElementById('filter-'+k).classList.toggle('active', k === f));
+      filterProjects();
+    }
+
+    function filterProjects() {
+      const q = document.getElementById('search-input').value.toLowerCase();
+      let list = _allProjects;
+      if (_currentFilter !== 'all') list = list.filter(p => p.status === _currentFilter);
+      if (q) list = list.filter(p =>
+        (p.clientName || '').toLowerCase().includes(q) ||
+        Object.values(p.courseName || {}).some(v => (v || '').toLowerCase().includes(q))
+      );
+      renderProjects(list);
+    }
+
+    function renderProjects(list) {
+      list = list ?? _allProjects;
+      const lang = i18n.lang;
+      document.getElementById('project-count').textContent =
+        `共 ${_allProjects.length} 個課程專案`;
+
+      if (list.length === 0) {
+        const msg = _allProjects.length === 0
+          ? i18n.t('projects.no_data') : i18n.t('projects.no_data_filtered');
+        document.getElementById('projects-tbody').innerHTML =
+          `<tr><td colspan="7" class="text-center py-16 text-gray-400">
+            <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <p class="font-medium">${msg}</p>
+          </td></tr>`;
+        return;
+      }
+
+      const badge = {
+        draft:     `<span class="badge badge-draft">${i18n.t('projects.status_draft')}</span>`,
+        active:    `<span class="badge badge-active">${i18n.t('projects.status_active')}</span>`,
+        completed: `<span class="badge badge-completed">${i18n.t('projects.status_completed')}</span>`,
+      };
+
+      document.getElementById('projects-tbody').innerHTML = list.map(p => {
+        const name = p.courseName?.[lang] || p.courseName?.zh_TW || '—';
+        const date = p.trainingDate
+          ? new Date(p.trainingDate + 'T00:00:00').toLocaleDateString('zh-TW') : '—';
+        const total = p.studentCount || 0;
+        const gen   = p.generatedCount || 0;
+        const pct   = total > 0 ? Math.round(gen / total * 100) : 0;
+        const prog  = total > 0
+          ? `<div class="text-xs text-gray-500 mb-1">${gen}/${total}</div>
+             <div class="prog-bg w-24"><div class="prog-fill" style="width:${pct}%"></div></div>`
+          : `<span class="text-gray-400 text-sm">—</span>`;
+        const nameEsc = (p.courseName?.zh_TW || p.clientName || '').replace(/'/g,"\\'");
+        return `<tr>
+          <td class="font-medium text-gray-800">${p.clientName || '—'}</td>
+          <td>${name}</td>
+          <td class="text-gray-500">${date}</td>
+          <td class="text-center">${total}</td>
+          <td>${prog}</td>
+          <td>${badge[p.status] || badge.draft}</td>
+          <td>
+            <div class="flex gap-1">
+              <a href="detail.html?id=${p.id}" class="btn-icon text-ccs-blue" title="查看詳情">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+              </a>
+              <button onclick="openEditModal('${p.id}')" class="btn-icon" title="編輯">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              </button>
+              <button onclick="confirmDelete('${p.id}','${nameEsc}')" class="btn-icon text-red-400 hover:text-red-600 hover:bg-red-50" title="刪除">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+              </button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function switchLangTab(lang) {
+      ['zh_TW','zh_CN','en','vi'].forEach(l => {
+        document.getElementById('tab-'+l).classList.toggle('active', l === lang);
+        document.getElementById('f-name-'+l).classList.toggle('hidden', l !== lang);
+      });
+    }
+
+    function openAddModal() {
+      _editingId = null;
+      document.getElementById('modal-title').textContent = i18n.t('projects.add_title');
+      ['f-client','f-name-zh_TW','f-name-zh_CN','f-name-en','f-name-vi','f-prefix']
+        .forEach(id => document.getElementById(id).value = '');
+      document.getElementById('f-date').value = '';
+      document.getElementById('f-hours').value = '';
+      document.getElementById('f-status').value = 'draft';
+      document.getElementById('modal-error').classList.add('hidden');
+      switchLangTab('zh_TW');
+      UI.showModal('project-modal');
+    }
+
+    function openEditModal(id) {
+      const p = _allProjects.find(x => x.id === id);
+      if (!p) return;
+      _editingId = id;
+      document.getElementById('modal-title').textContent = i18n.t('projects.edit_title');
+      document.getElementById('f-client').value = p.clientName || '';
+      ['zh_TW','zh_CN','en','vi'].forEach(l =>
+        document.getElementById('f-name-'+l).value = p.courseName?.[l] || '');
+      document.getElementById('f-date').value   = p.trainingDate || '';
+      document.getElementById('f-hours').value  = p.hours || '';
+      document.getElementById('f-prefix').value = p.certPrefix || '';
+      document.getElementById('f-status').value = p.status || 'draft';
+      document.getElementById('modal-error').classList.add('hidden');
+      switchLangTab('zh_TW');
+      UI.showModal('project-modal');
+    }
+
+    async function saveProject() {
+      const clientName   = document.getElementById('f-client').value.trim();
+      const trainingDate = document.getElementById('f-date').value;
+      if (!clientName || !trainingDate) {
+        const el = document.getElementById('modal-error');
+        el.textContent = '客戶名稱與訓練日期為必填';
+        el.classList.remove('hidden');
+        return;
+      }
+      const btn = document.getElementById('btn-save-project');
+      btn.disabled = true;
+
+      const data = {
+        orgId: APP_CONFIG.orgId,
+        clientName,
+        courseName: {
+          zh_TW: document.getElementById('f-name-zh_TW').value.trim(),
+          zh_CN: document.getElementById('f-name-zh_CN').value.trim(),
+          en:    document.getElementById('f-name-en').value.trim(),
+          vi:    document.getElementById('f-name-vi').value.trim(),
+        },
+        trainingDate,
+        hours: parseInt(document.getElementById('f-hours').value) || 0,
+        certPrefix: document.getElementById('f-prefix').value.trim().toUpperCase(),
+        status: document.getElementById('f-status').value,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+
+      try {
+        if (_editingId) {
+          await db.collection(Collections.PROJECTS).doc(_editingId).update(data);
+          const idx = _allProjects.findIndex(x => x.id === _editingId);
+          if (idx >= 0) _allProjects[idx] = { ..._allProjects[idx], ...data };
+        } else {
+          data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+          data.studentCount = 0;
+          data.generatedCount = 0;
+          data.createdBy = Auth.user.uid;
+          const ref = await db.collection(Collections.PROJECTS).add(data);
+          _allProjects.unshift({ id: ref.id, ...data });
+        }
+        UI.hideModal('project-modal');
+        UI.toast(i18n.t('projects.save_success'), 'success');
+        filterProjects();
+      } catch (e) {
+        console.error(e);
+        const el = document.getElementById('modal-error');
+        el.textContent = e.message || '儲存失敗';
+        el.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function confirmDelete(id, name) {
+      document.getElementById('delete-msg').textContent =
+        i18n.t('projects.delete_confirm').replace('{name}', name);
+      document.getElementById('btn-confirm-delete').onclick = () => deleteProject(id);
+      UI.showModal('delete-modal');
+    }
+
+    async function deleteProject(id) {
+      try {
+        await db.collection(Collections.PROJECTS).doc(id).delete();
+        _allProjects = _allProjects.filter(x => x.id !== id);
+        UI.hideModal('delete-modal');
+        UI.toast(i18n.t('projects.delete_success'), 'success');
+        filterProjects();
+      } catch (e) {
+        UI.toast('刪除失敗：' + e.message, 'error');
+      }
+    }
   </script>
 </body>
 </html>
