@@ -148,7 +148,7 @@
     };
 
     (async () => {
-      await UI.initAdminPage({ active: 'accounts', title: i18n.t('accounts.title') });
+      await UI.initAdminPage({ active: 'accounts', titleKey: 'accounts.title' });
       await loadAccounts();
     })();
 

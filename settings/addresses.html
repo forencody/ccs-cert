@@ -150,7 +150,7 @@
     ];
 
     (async () => {
-      await UI.initAdminPage({ active: 'addresses', title: i18n.t('addresses.title') });
+      await UI.initAdminPage({ active: 'addresses', titleKey: 'addresses.title' });
       await loadAddresses();
     })();
 

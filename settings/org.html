@@ -161,7 +161,7 @@
     let _pendingUploads = {}; // { logo: File, signature: File }
 
     (async () => {
-      await UI.initAdminPage({ active: 'org', title: i18n.t('org.title') });
+      await UI.initAdminPage({ active: 'org', titleKey: 'org.title' });
       await loadOrg();
       setupDragDrop();
     })();

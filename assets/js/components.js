@@ -128,7 +128,7 @@ const UI = (() => {
 
   // ── 頁面初始化 ───────────────────────────────
   async function initAdminPage(options = {}) {
-    const { active = 'dashboard', title = '', roles = ['superadmin', 'certmanager'] } = options;
+    const { active = 'dashboard', title = '', titleKey = '', roles = ['superadmin', 'certmanager'] } = options;
 
     // 先載入語系（避免閃爍）
     await i18n.load();
@@ -146,7 +146,7 @@ const UI = (() => {
     const sidebar = document.getElementById('sidebar');
     const topbar  = document.getElementById('topbar');
     if (sidebar) sidebar.innerHTML = renderSidebar(active);
-    if (topbar)  topbar.innerHTML  = renderTopBar(title || i18n.t('nav.' + active));
+    if (topbar)  topbar.innerHTML  = renderTopBar(title || (titleKey ? i18n.t(titleKey) : i18n.t('nav.' + active)));
 
     // 隱藏 loading，顯示 app
     const loading = document.getElementById('loading-screen');
