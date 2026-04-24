@@ -200,7 +200,10 @@
         <div id="design-canvas"
           style="position:relative;width:960px;height:680px;flex-shrink:0;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.15);border-radius:4px;"
           onmousedown="onCanvasMouseDown(event)"
-          onclick="onCanvasClick(event)">
+          onclick="onCanvasClick(event)"
+          ondragover="onCanvasDragOver(event)"
+          ondragleave="onCanvasDragLeave(event)"
+          ondrop="onCanvasDrop(event)">
 
           <img id="cert-bg-img" src="" alt=""
             style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;pointer-events:none;">
@@ -209,7 +212,14 @@
             style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#9ca3af;">
             <svg class="w-16 h-16 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
             <p style="font-size:.9rem;font-weight:500;margin-bottom:4px;">尚未上傳背景圖</p>
-            <p style="font-size:.78rem;">點左上角「上傳背景圖」</p>
+            <p style="font-size:.78rem;">點左上角「上傳背景圖」或直接拖曳檔案至此</p>
+          </div>
+
+          <!-- Drag-over overlay -->
+          <div id="drag-overlay" style="display:none;position:absolute;inset:0;z-index:100;background:rgba(49,101,167,.12);border:3px dashed #3165A7;border-radius:4px;pointer-events:none;flex-direction:column;align-items:center;justify-content:center;color:#3165A7;">
+            <svg style="width:56px;height:56px;margin-bottom:10px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4m4-5l5 5 5-5m-5 5V3"/></svg>
+            <p style="font-size:1rem;font-weight:600;">放開以上傳背景圖</p>
+            <p style="font-size:.78rem;margin-top:4px;opacity:.7;">支援 PNG / JPG / PDF</p>
           </div>
 
           <div id="field-overlays" style="position:absolute;inset:0;pointer-events:none;"></div>
@@ -376,6 +386,31 @@
   }
 
   // ── Background Upload ──────────────────────────────────────
+  function onCanvasDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    const overlay = document.getElementById('drag-overlay');
+    overlay.style.display = 'flex';
+  }
+
+  function onCanvasDragLeave(e) {
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      document.getElementById('drag-overlay').style.display = 'none';
+    }
+  }
+
+  function onCanvasDrop(e) {
+    e.preventDefault();
+    document.getElementById('drag-overlay').style.display = 'none';
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const ok = ['image/png','image/jpeg','image/jpg','application/pdf'];
+    if (!ok.includes(file.type) && !file.name.toLowerCase().endsWith('.pdf')) {
+      UI.toast('僅支援 PNG / JPG / PDF 格式', 'error'); return;
+    }
+    handleBgUpload({ target: { files: [file], value: '' } });
+  }
+
   async function handleBgUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
