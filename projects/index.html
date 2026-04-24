@@ -211,9 +211,10 @@
     async function loadProjects() {
       try {
         const snap = await db.collection(Collections.PROJECTS)
-          .where('orgId', '==', APP_CONFIG.orgId)
-          .orderBy('createdAt', 'desc').get();
-        _allProjects = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          .where('orgId', '==', APP_CONFIG.orgId).get();
+        _allProjects = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
         renderProjects();
       } catch (e) {
         console.error(e);
