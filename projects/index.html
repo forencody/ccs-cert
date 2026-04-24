@@ -140,6 +140,28 @@
             </select>
           </div>
         </div>
+        <div>
+          <label class="form-label">證書語言 <span class="text-red-400">*</span></label>
+          <div class="border border-gray-200 rounded-lg p-3 bg-gray-50 flex gap-6 flex-wrap">
+            <label class="flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" id="f-lang-zh_TW" value="zh_TW" class="cert-lang-check w-4 h-4 accent-ccs-blue" checked>
+              <span class="text-sm text-gray-700">繁體中文</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" id="f-lang-zh_CN" value="zh_CN" class="cert-lang-check w-4 h-4 accent-ccs-blue" checked>
+              <span class="text-sm text-gray-700">简体中文</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" id="f-lang-en" value="en" class="cert-lang-check w-4 h-4 accent-ccs-blue" checked>
+              <span class="text-sm text-gray-700">English</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" id="f-lang-vi" value="vi" class="cert-lang-check w-4 h-4 accent-ccs-blue" checked>
+              <span class="text-sm text-gray-700">Tiếng Việt</span>
+            </label>
+          </div>
+          <p class="text-xs text-gray-400 mt-1.5">系統將依選取語言自動產生對應語言版本的證書</p>
+        </div>
         <div id="modal-error" class="hidden text-sm text-red-500 bg-red-50 p-3 rounded-lg"></div>
       </div>
       <div class="modal-footer">
@@ -284,6 +306,18 @@
       });
     }
 
+    const CERT_LANGS = ['zh_TW','zh_CN','en','vi'];
+
+    function setCertLangs(langs) {
+      const selected = langs && langs.length ? langs : CERT_LANGS;
+      CERT_LANGS.forEach(l =>
+        document.getElementById('f-lang-'+l).checked = selected.includes(l));
+    }
+
+    function getCertLangs() {
+      return CERT_LANGS.filter(l => document.getElementById('f-lang-'+l).checked);
+    }
+
     function openAddModal() {
       _editingId = null;
       document.getElementById('modal-title').textContent = i18n.t('projects.add_title');
@@ -292,6 +326,7 @@
       document.getElementById('f-date').value = '';
       document.getElementById('f-hours').value = '';
       document.getElementById('f-status').value = 'draft';
+      setCertLangs(CERT_LANGS);
       document.getElementById('modal-error').classList.add('hidden');
       switchLangTab('zh_TW');
       UI.showModal('project-modal');
@@ -309,6 +344,7 @@
       document.getElementById('f-hours').value  = p.hours || '';
       document.getElementById('f-prefix').value = p.certPrefix || '';
       document.getElementById('f-status').value = p.status || 'draft';
+      setCertLangs(p.certLangs);
       document.getElementById('modal-error').classList.add('hidden');
       switchLangTab('zh_TW');
       UI.showModal('project-modal');
@@ -317,12 +353,19 @@
     async function saveProject() {
       const clientName   = document.getElementById('f-client').value.trim();
       const trainingDate = document.getElementById('f-date').value;
+      const certLangs    = getCertLangs();
+      const el = document.getElementById('modal-error');
       if (!clientName || !trainingDate) {
-        const el = document.getElementById('modal-error');
         el.textContent = '客戶名稱與訓練日期為必填';
         el.classList.remove('hidden');
         return;
       }
+      if (certLangs.length === 0) {
+        el.textContent = '請至少選擇一種證書語言';
+        el.classList.remove('hidden');
+        return;
+      }
+      el.classList.add('hidden');
       const btn = document.getElementById('btn-save-project');
       btn.disabled = true;
 
@@ -338,6 +381,7 @@
         trainingDate,
         hours: parseInt(document.getElementById('f-hours').value) || 0,
         certPrefix: document.getElementById('f-prefix').value.trim().toUpperCase(),
+        certLangs,
         status: document.getElementById('f-status').value,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       };
