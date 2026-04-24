@@ -4,46 +4,221 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>證書模板 — CCS 證書管理系統</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config={theme:{extend:{colors:{'ccs-blue':'#3165A7','ccs-teal':'#1A9A83','ccs-orange':'#F3982D','ccs-gray':'#58595B'}}}}</script>
   <link rel="stylesheet" href="../assets/css/app.css">
+  <style>
+    .cert-field {
+      position: absolute;
+      cursor: move;
+      border: 1.5px dashed transparent;
+      user-select: none;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+    }
+    .cert-field:hover { border-color: rgba(49,101,167,0.6); border-radius: 3px; }
+    .cert-field.selected { border: 2px solid #3165A7; border-radius: 3px; box-shadow: 0 0 0 3px rgba(49,101,167,.2); }
+    .cert-field .finner { width:100%; overflow:hidden; white-space:nowrap; pointer-events:none; }
+    .field-btn { display:flex; align-items:center; gap:8px; width:100%; padding:7px 10px; border-radius:8px;
+      font-size:.8rem; color:#374151; background:transparent; border:1px solid transparent; cursor:pointer; text-align:left; transition:all .12s; }
+    .field-btn:hover { background:#f0f4ff; border-color:#c7d7f0; }
+    .ficon { width:26px; height:26px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:.72rem; font-weight:700; flex-shrink:0; }
+    .prop-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+    .prop-lbl { font-size:.72rem; color:#6b7280; width:58px; flex-shrink:0; }
+    .canvas-checker { background: repeating-conic-gradient(#e5e7eb 0% 25%, transparent 0% 50%) 0 0/20px 20px; }
+    .align-btn { width:26px; height:26px; display:flex; align-items:center; justify-content:center; border-radius:5px; border:1px solid #e5e7eb; cursor:pointer; background:white; }
+    .align-btn.active { background:#dbeafe; border-color:#93c5fd; }
+  </style>
 </head>
 <body class="bg-gray-50">
 
   <div id="loading-screen"><div class="spinner"></div></div>
 
   <div id="app" style="display:none">
-    <div id="sidebar"></div>
+    <div id="sidebar" class="sidebar"></div>
     <div id="main-content">
       <div id="topbar"></div>
-      <main class="flex-1 p-6 flex flex-col items-center justify-center" style="min-height:60vh">
-        <div class="text-center max-w-md">
-          <div class="w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-6" style="background:linear-gradient(135deg,#fff7ed,#fed7aa)">
-            <svg class="w-12 h-12" style="color:#F3982D" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
-            </svg>
+      <main class="flex-1 p-6">
+
+        <!-- ── Template List View ── -->
+        <div id="view-list">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <h2 class="text-xl font-bold text-gray-800">證書模板</h2>
+              <p class="text-sm text-gray-500 mt-0.5" id="tmpl-count"></p>
+            </div>
+            <button onclick="openNewTemplate()" class="btn-primary">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+              新增模板
+            </button>
           </div>
-          <h2 class="text-xl font-bold text-gray-800 mb-2" data-i18n="templates.title">證書模板</h2>
-          <p class="text-gray-500 text-sm mb-6" data-i18n="templates.coming_soon">模板設計器將於 Phase 3 推出</p>
-          <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-left text-sm text-blue-800">
-            <p class="font-semibold mb-2">Phase 3 即將推出：</p>
-            <ul class="space-y-1 text-blue-700">
-              <li>• 上傳證書底圖（PNG / JPG / PDF）</li>
-              <li>• 拖曳定位欄位（姓名、課程、日期、QR Code…）</li>
-              <li>• 對齊輔助線、字體與顏色設定</li>
-              <li>• 四語系即時預覽（繁中 / 簡中 / 英 / 越）</li>
-              <li>• 儲存模板庫，課程專案選用</li>
-            </ul>
+          <div id="template-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div class="col-span-full text-center py-12"><div class="spinner mx-auto"></div></div>
           </div>
-          <a href="../index.html" class="btn-secondary mt-6 inline-flex">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-            <span data-i18n="app.back">返回儀表板</span>
-          </a>
         </div>
+
       </main>
     </div>
   </div>
 
+  <!-- ══════════════ Full-screen Editor Overlay ══════════════ -->
+  <div id="editor-overlay" class="hidden" style="position:fixed;inset:0;z-index:200;background:#f1f5f9;display:flex;flex-direction:column;">
+
+    <!-- Editor Top Bar -->
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:white;border-bottom:1px solid #e5e7eb;flex-shrink:0;">
+      <button onclick="closeEditor()" class="btn-icon" title="返回列表">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+      </button>
+      <input id="tmpl-name-input" type="text" placeholder="模板名稱（例：標準教育訓練證書）"
+        class="border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-ccs-blue"
+        style="width:280px">
+      <div style="flex:1"></div>
+      <span style="font-size:.8rem;color:#6b7280;">預覽語系</span>
+      <select id="preview-lang-sel" onchange="renderOverlays()"
+        class="border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none">
+        <option value="zh_TW">繁體中文</option>
+        <option value="zh_CN">简体中文</option>
+        <option value="en">English</option>
+        <option value="vi">Tiếng Việt</option>
+      </select>
+      <label class="flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer ml-2">
+        <input type="checkbox" id="tmpl-default-chk" class="w-4 h-4 accent-ccs-blue">
+        設為預設
+      </label>
+      <button onclick="saveTemplate()" id="btn-save-tmpl" class="btn-primary ml-2">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        儲存
+      </button>
+    </div>
+
+    <!-- Editor Body -->
+    <div style="display:flex;flex:1;overflow:hidden;">
+
+      <!-- Left Panel -->
+      <div style="width:228px;flex-shrink:0;background:white;border-right:1px solid #e5e7eb;display:flex;flex-direction:column;overflow-y:auto;">
+
+        <!-- Add Field -->
+        <div style="padding:10px;border-bottom:1px solid #f3f4f6;">
+          <p style="font-size:.68rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px;">新增欄位</p>
+          <div id="field-type-list"></div>
+        </div>
+
+        <!-- Field Properties -->
+        <div id="field-props" style="padding:10px;display:none;">
+          <p style="font-size:.68rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">欄位屬性</p>
+          <p id="prop-type-label" style="font-size:.82rem;font-weight:600;color:#1f2937;margin-bottom:10px;"></p>
+
+          <div id="prop-custom-row" style="display:none;margin-bottom:10px;">
+            <p class="prop-lbl" style="width:auto;margin-bottom:3px;">文字內容</p>
+            <input id="prop-custom-text" type="text" class="form-input" style="font-size:.8rem;"
+              placeholder="自訂文字" oninput="updateField('customText',this.value)">
+          </div>
+
+          <div class="prop-row" id="prop-fs-row">
+            <span class="prop-lbl">字體大小</span>
+            <input id="prop-fs" type="number" min="8" max="200" class="form-input" style="width:64px;font-size:.8rem;"
+              oninput="updateField('fontSize',+this.value)">
+            <span style="font-size:.72rem;color:#9ca3af">px</span>
+          </div>
+
+          <div class="prop-row" id="prop-color-row">
+            <span class="prop-lbl">字體顏色</span>
+            <input id="prop-color" type="color" style="width:36px;height:28px;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;padding:2px;"
+              oninput="updateField('fontColor',this.value)">
+          </div>
+
+          <div class="prop-row" id="prop-bold-row">
+            <span class="prop-lbl">粗體</span>
+            <input type="checkbox" id="prop-bold" class="w-4 h-4 accent-ccs-blue"
+              onchange="updateField('bold',this.checked)">
+          </div>
+
+          <div class="prop-row" id="prop-align-row">
+            <span class="prop-lbl">對齊</span>
+            <div style="display:flex;gap:3px;">
+              <button onclick="updateField('align','left')"   class="align-btn" id="ab-left"   title="靠左"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 6H3M15 12H3M17 18H3"/></svg></button>
+              <button onclick="updateField('align','center')" class="align-btn" id="ab-center" title="置中"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 6H3M17 12H7M19 18H5"/></svg></button>
+              <button onclick="updateField('align','right')"  class="align-btn" id="ab-right"  title="靠右"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 6H3M21 12H9M21 18H7"/></svg></button>
+            </div>
+          </div>
+
+          <div class="prop-row">
+            <span class="prop-lbl">寬度</span>
+            <input id="prop-w" type="number" min="5" max="100" class="form-input" style="width:64px;font-size:.8rem;"
+              oninput="updateField('width',+this.value)">
+            <span style="font-size:.72rem;color:#9ca3af">%</span>
+          </div>
+
+          <div class="prop-row" id="prop-h-row" style="display:none;">
+            <span class="prop-lbl">高度</span>
+            <input id="prop-h" type="number" min="3" max="80" class="form-input" style="width:64px;font-size:.8rem;"
+              oninput="updateField('height',+this.value)">
+            <span style="font-size:.72rem;color:#9ca3af">%</span>
+          </div>
+
+          <div class="prop-row">
+            <span class="prop-lbl">X 位置</span>
+            <input id="prop-x" type="number" min="0" max="95" step="0.5" class="form-input" style="width:64px;font-size:.8rem;"
+              oninput="updateField('x',+this.value)">
+            <span style="font-size:.72rem;color:#9ca3af">%</span>
+          </div>
+          <div class="prop-row">
+            <span class="prop-lbl">Y 位置</span>
+            <input id="prop-y" type="number" min="0" max="95" step="0.5" class="form-input" style="width:64px;font-size:.8rem;"
+              oninput="updateField('y',+this.value)">
+            <span style="font-size:.72rem;color:#9ca3af">%</span>
+          </div>
+
+          <button onclick="deleteSelected()" class="btn-danger w-full mt-3" style="font-size:.78rem;padding:6px 10px;">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+            刪除此欄位
+          </button>
+        </div>
+
+        <div id="field-hint" style="padding:16px;color:#9ca3af;font-size:.76rem;text-align:center;margin-top:8px;">
+          點選畫布上的欄位<br>即可編輯屬性
+        </div>
+      </div>
+
+      <!-- Canvas Area -->
+      <div style="flex:1;overflow:auto;display:flex;flex-direction:column;align-items:flex-start;padding:20px;gap:10px;">
+        <!-- Controls -->
+        <div style="display:flex;align-items:center;gap:10px;width:960px;">
+          <label class="btn-secondary cursor-pointer" style="font-size:.8rem;padding:6px 12px;">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4m4-5l5 5 5-5m-5 5V3"/></svg>
+            上傳背景圖
+            <input id="bg-file-input" type="file" accept="image/png,image/jpeg,image/jpg" class="hidden" onchange="handleBgUpload(event)">
+          </label>
+          <span id="bg-status" style="font-size:.75rem;color:#6b7280;"></span>
+          <div style="flex:1"></div>
+          <span style="font-size:.72rem;color:#9ca3af;">建議尺寸 1920×1356 px（A4 橫式 2x）</span>
+        </div>
+
+        <!-- Design Canvas 960×680 -->
+        <div id="design-canvas"
+          style="position:relative;width:960px;height:680px;flex-shrink:0;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.15);border-radius:4px;"
+          onmousedown="onCanvasMouseDown(event)"
+          onclick="onCanvasClick(event)">
+
+          <img id="cert-bg-img" src="" alt=""
+            style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;pointer-events:none;">
+
+          <div id="canvas-placeholder" class="canvas-checker"
+            style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#9ca3af;">
+            <svg class="w-16 h-16 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <p style="font-size:.9rem;font-weight:500;margin-bottom:4px;">尚未上傳背景圖</p>
+            <p style="font-size:.78rem;">點左上角「上傳背景圖」</p>
+          </div>
+
+          <div id="field-overlays" style="position:absolute;inset:0;pointer-events:none;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -53,10 +228,422 @@
   <script src="../assets/js/i18n.js"></script>
   <script src="../assets/js/auth.js"></script>
   <script src="../assets/js/components.js"></script>
+
   <script>
-    (async () => {
-      await UI.initAdminPage({ active: 'templates', titleKey: 'templates.title' });
-    })();
+  // ── Constants ─────────────────────────────────────────────
+  const CANVAS_W = 960, CANVAS_H = 680;
+
+  const FIELD_DEFS = [
+    { type:'student_name',     label:'學員姓名',    c:'#dbeafe', b:'#93c5fd', i:'S' },
+    { type:'course_name',      label:'課程名稱',    c:'#dcfce7', b:'#86efac', i:'C' },
+    { type:'training_date',    label:'培訓日期',    c:'#fef9c3', b:'#fde047', i:'D' },
+    { type:'hours',            label:'培訓時數',    c:'#fef9c3', b:'#fde047', i:'H' },
+    { type:'cert_no',          label:'證書編號',    c:'#f3e8ff', b:'#d8b4fe', i:'#' },
+    { type:'org_name',         label:'發證單位',    c:'#ffe4e6', b:'#fca5a5', i:'O' },
+    { type:'authorized_name',  label:'授權人姓名',  c:'#ffedd5', b:'#fdba74', i:'A' },
+    { type:'authorized_title', label:'授權人職稱',  c:'#ffedd5', b:'#fdba74', i:'T' },
+    { type:'signature',        label:'簽名圖',      c:'#e0e7ff', b:'#a5b4fc', i:'✍', img:true },
+    { type:'logo',             label:'Logo',        c:'#e0e7ff', b:'#a5b4fc', i:'L', img:true },
+    { type:'custom_text',      label:'自訂文字',    c:'#f1f5f9', b:'#cbd5e1', i:'¶' },
+  ];
+
+  const SAMPLE = {
+    zh_TW:{ sn:'王小明',       cn:'企業永續發展教育訓練',     on:'成創永續股份有限公司',                   an:'吳達偉', at:'董事長',     dt:'2026年4月24日',       h:'8 小時' },
+    zh_CN:{ sn:'王小明',       cn:'企业可持续发展教育培训',    on:'成创永续股份有限公司',                   an:'吴达伟', at:'董事长',     dt:'2026年4月24日',       h:'8 小时' },
+    en:   { sn:'Wang Xiao Ming',cn:'Corporate Sustainability Training', on:'C.C.Sustain ESG Solution Co., Ltd.',an:'David Wu',at:'Chairman',dt:'April 24, 2026', h:'8 Hours' },
+    vi:   { sn:'Vương Tiểu Minh',cn:'Đào tạo Phát triển Bền vững', on:'C.C.Sustain ESG Solution Co., Ltd.',an:'David Wu',at:'Chủ tịch',dt:'Ngày 24/4/2026', h:'8 giờ' },
+  };
+
+  // ── State ──────────────────────────────────────────────────
+  let _templates = [];
+  let _editId = null;
+  let _fields = [];
+  let _selId = null;
+  let _bgUrl = null;
+  let _bgPath = null;
+  let _dragging = null, _dmx = 0, _dmy = 0, _dfx = 0, _dfy = 0;
+
+  // ── Init ───────────────────────────────────────────────────
+  (async () => {
+    await UI.initAdminPage({ active:'templates', titleKey:'templates.title' });
+    buildFieldTypeList();
+    await loadTemplates();
+  })();
+
+  // ── Template List ──────────────────────────────────────────
+  async function loadTemplates() {
+    try {
+      const snap = await db.collection(Collections.TEMPLATES)
+        .where('orgId','==',APP_CONFIG.orgId).get();
+      _templates = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+      renderGrid();
+    } catch(e) {
+      console.error(e);
+      document.getElementById('template-grid').innerHTML =
+        `<div class="col-span-full text-center py-8 text-red-400 text-sm">載入失敗</div>`;
+    }
+  }
+
+  function renderGrid() {
+    const el = document.getElementById('template-grid');
+    document.getElementById('tmpl-count').textContent = `共 ${_templates.length} 個模板`;
+    if (_templates.length === 0) {
+      el.innerHTML = `
+        <div class="col-span-full bg-white rounded-xl border border-dashed border-gray-200 p-16 text-center text-gray-400">
+          <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg>
+          <p class="font-medium mb-1">尚無模板</p>
+          <p class="text-sm">點擊「新增模板」建立第一個證書模板</p>
+        </div>`;
+      return;
+    }
+    el.innerHTML = _templates.map(t => `
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+        <div class="relative bg-gray-100 overflow-hidden" style="aspect-ratio:960/680">
+          ${t.bgImageUrl
+            ? `<img src="${t.bgImageUrl}" class="w-full h-full object-cover">`
+            : `<div class="w-full h-full flex items-center justify-center text-gray-300 canvas-checker">
+                <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+               </div>`}
+          ${t.isDefault ? `<span class="absolute top-2 left-2 bg-ccs-teal text-white text-xs px-2 py-0.5 rounded-full font-medium">預設</span>` : ''}
+        </div>
+        <div class="p-4">
+          <h3 class="font-semibold text-gray-800 truncate">${t.name || '未命名模板'}</h3>
+          <p class="text-xs text-gray-400 mt-0.5">${(t.fields||[]).length} 個欄位</p>
+          <div class="flex gap-2 mt-3">
+            <button onclick="openEditor('${t.id}')" class="btn-primary flex-1" style="font-size:.8rem;padding:6px 10px;">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              編輯
+            </button>
+            <button onclick="confirmDeleteTemplate('${t.id}')" class="btn-icon text-red-400 hover:text-red-600 hover:bg-red-50" title="刪除">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>`
+    ).join('');
+  }
+
+  // ── Open / Close Editor ────────────────────────────────────
+  function openNewTemplate() {
+    _editId = null; _fields = []; _bgUrl = null; _bgPath = null; _selId = null;
+    document.getElementById('tmpl-name-input').value = '';
+    document.getElementById('tmpl-default-chk').checked = false;
+    document.getElementById('cert-bg-img').style.display = 'none';
+    document.getElementById('canvas-placeholder').style.display = 'flex';
+    document.getElementById('bg-status').textContent = '';
+    renderOverlays();
+    hideProps();
+    showEditor();
+  }
+
+  function openEditor(id) {
+    const t = _templates.find(x => x.id === id);
+    if (!t) return;
+    _editId = id;
+    _fields = JSON.parse(JSON.stringify(t.fields || []));
+    _bgUrl  = t.bgImageUrl || null;
+    _bgPath = t.bgStoragePath || null;
+    _selId  = null;
+    document.getElementById('tmpl-name-input').value = t.name || '';
+    document.getElementById('tmpl-default-chk').checked = !!t.isDefault;
+    if (_bgUrl) {
+      const img = document.getElementById('cert-bg-img');
+      img.src = _bgUrl; img.style.display = 'block';
+      document.getElementById('canvas-placeholder').style.display = 'none';
+      document.getElementById('bg-status').textContent = '已有背景圖';
+    } else {
+      document.getElementById('cert-bg-img').style.display = 'none';
+      document.getElementById('canvas-placeholder').style.display = 'flex';
+      document.getElementById('bg-status').textContent = '';
+    }
+    renderOverlays();
+    hideProps();
+    showEditor();
+  }
+
+  function showEditor() {
+    const el = document.getElementById('editor-overlay');
+    el.classList.remove('hidden');
+    el.style.display = 'flex';
+  }
+
+  function closeEditor() {
+    const el = document.getElementById('editor-overlay');
+    el.classList.add('hidden');
+    el.style.display = 'none';
+  }
+
+  // ── Background Upload ──────────────────────────────────────
+  async function handleBgUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) { UI.toast('背景圖不超過 8MB', 'error'); return; }
+    const statusEl = document.getElementById('bg-status');
+    statusEl.textContent = '上傳中...';
+    try {
+      const localUrl = URL.createObjectURL(file);
+      const bgImg = document.getElementById('cert-bg-img');
+      bgImg.src = localUrl; bgImg.style.display = 'block';
+      document.getElementById('canvas-placeholder').style.display = 'none';
+
+      const ext = file.name.split('.').pop().toLowerCase();
+      const tmpId = _editId || ('new_' + Date.now());
+      const path = `templates/${APP_CONFIG.orgId}/${tmpId}/bg.${ext}`;
+      const ref = storage.ref(path);
+      await ref.put(file);
+      _bgUrl  = await ref.getDownloadURL();
+      _bgPath = path;
+      bgImg.src = _bgUrl;
+      statusEl.textContent = '上傳成功 ✓';
+      UI.toast('背景圖已上傳', 'success');
+    } catch(err) {
+      statusEl.textContent = '上傳失敗';
+      UI.toast('上傳失敗：' + err.message, 'error');
+    }
+    e.target.value = '';
+  }
+
+  // ── Field Type Button List ─────────────────────────────────
+  function buildFieldTypeList() {
+    document.getElementById('field-type-list').innerHTML = FIELD_DEFS.map(fd =>
+      `<button class="field-btn" onclick="addField('${fd.type}')">
+        <span class="ficon" style="background:${fd.c};border:1px solid ${fd.b}">${fd.i}</span>
+        ${fd.label}
+      </button>`
+    ).join('');
+  }
+
+  // ── Field CRUD ─────────────────────────────────────────────
+  function addField(type) {
+    const fd = FIELD_DEFS.find(f => f.type === type);
+    const id = 'f' + Date.now();
+    const isImg = !!fd?.img;
+    _fields.push({
+      id, type,
+      x: 20, y: 40,
+      width: isImg ? 14 : 60,
+      height: isImg ? 9 : null,
+      fontSize: isImg ? 0 : 26,
+      fontColor: '#1F3C6E',
+      bold: false,
+      align: 'center',
+      customText: '',
+    });
+    _selId = id;
+    renderOverlays();
+    showProps(_fields[_fields.length - 1]);
+  }
+
+  function deleteSelected() {
+    if (!_selId) return;
+    _fields = _fields.filter(f => f.id !== _selId);
+    _selId = null;
+    renderOverlays();
+    hideProps();
+  }
+
+  function updateField(key, val) {
+    const f = _fields.find(x => x.id === _selId);
+    if (!f) return;
+    f[key] = val;
+    if (key === 'x') document.getElementById('prop-x').value = parseFloat(val).toFixed(1);
+    if (key === 'y') document.getElementById('prop-y').value = parseFloat(val).toFixed(1);
+    if (key === 'align') setAlignUI(val);
+    renderOverlays();
+  }
+
+  // ── Properties Panel ───────────────────────────────────────
+  function showProps(f) {
+    const fd = FIELD_DEFS.find(x => x.type === f.type);
+    const isImg = !!fd?.img;
+    document.getElementById('field-props').style.display = 'block';
+    document.getElementById('field-hint').style.display  = 'none';
+    document.getElementById('prop-type-label').textContent = fd?.label || f.type;
+    document.getElementById('prop-fs').value    = f.fontSize || 26;
+    document.getElementById('prop-color').value = f.fontColor || '#1F3C6E';
+    document.getElementById('prop-bold').checked = !!f.bold;
+    document.getElementById('prop-w').value = f.width || 60;
+    document.getElementById('prop-x').value = parseFloat(f.x||0).toFixed(1);
+    document.getElementById('prop-y').value = parseFloat(f.y||0).toFixed(1);
+    setAlignUI(f.align || 'center');
+    // Toggle image-only fields
+    ['prop-fs-row','prop-color-row','prop-bold-row','prop-align-row'].forEach(id =>
+      document.getElementById(id).style.display = isImg ? 'none' : 'flex');
+    document.getElementById('prop-h-row').style.display = isImg ? 'flex' : 'none';
+    if (isImg) document.getElementById('prop-h').value = f.height || 9;
+    document.getElementById('prop-custom-row').style.display =
+      f.type === 'custom_text' ? 'block' : 'none';
+    if (f.type === 'custom_text')
+      document.getElementById('prop-custom-text').value = f.customText || '';
+  }
+
+  function hideProps() {
+    document.getElementById('field-props').style.display = 'none';
+    document.getElementById('field-hint').style.display  = 'block';
+  }
+
+  function setAlignUI(align) {
+    ['left','center','right'].forEach(a =>
+      document.getElementById('ab-'+a)?.classList.toggle('active', a === align));
+  }
+
+  // ── Canvas Render ──────────────────────────────────────────
+  function getSampleValue(type, lang, customText) {
+    const s = SAMPLE[lang] || SAMPLE.zh_TW;
+    const map = { student_name:s.sn, course_name:s.cn, training_date:s.dt, hours:s.h,
+      cert_no:'CCS-202604-001', org_name:s.on, authorized_name:s.an,
+      authorized_title:s.at, custom_text: customText || '自訂文字' };
+    return map[type] || type;
+  }
+
+  function renderOverlays() {
+    const lang = document.getElementById('preview-lang-sel')?.value || 'zh_TW';
+    const container = document.getElementById('field-overlays');
+    container.innerHTML = '';
+    container.style.pointerEvents = 'none';
+
+    _fields.forEach(f => {
+      const fd   = FIELD_DEFS.find(x => x.type === f.type);
+      const isSel = f.id === _selId;
+      const isImg = !!fd?.img;
+      const div   = document.createElement('div');
+      div.className = 'cert-field' + (isSel ? ' selected' : '');
+      div.dataset.fid = f.id;
+      div.style.left  = f.x + '%';
+      div.style.top   = f.y + '%';
+      div.style.width = f.width + '%';
+      div.style.pointerEvents = 'all';
+
+      if (isImg) {
+        div.style.height     = (f.height || 9) + '%';
+        div.style.background = fd.c;
+        div.style.border     = `1.5px dashed ${fd.b}`;
+        div.style.borderRadius = '4px';
+        div.style.justifyContent = 'center';
+        div.innerHTML = `<span style="font-size:.78rem;color:#6b7280;font-weight:600;">${fd.i} ${fd.label}</span>`;
+      } else {
+        const inner = document.createElement('div');
+        inner.className = 'finner';
+        inner.style.cssText = `
+          font-size:${f.fontSize}px;
+          color:${f.fontColor};
+          font-weight:${f.bold ? 700 : 400};
+          text-align:${f.align || 'center'};
+          font-family:'Noto Serif TC','Noto Sans TC',serif;
+          text-shadow:0 1px 3px rgba(255,255,255,.7);
+          line-height:1.2;
+        `;
+        inner.textContent = getSampleValue(f.type, lang, f.customText);
+        div.appendChild(inner);
+      }
+      container.appendChild(div);
+    });
+  }
+
+  // ── Drag & Drop ────────────────────────────────────────────
+  function onCanvasMouseDown(e) {
+    const el = e.target.closest('.cert-field');
+    if (!el) return;
+    e.preventDefault();
+    const fid = el.dataset.fid;
+    _selId = fid;
+    const f = _fields.find(x => x.id === fid);
+    if (!f) return;
+    showProps(f);
+    renderOverlays();
+
+    const canvas = document.getElementById('design-canvas');
+    const rect = canvas.getBoundingClientRect();
+    _dragging = f;
+    _dmx = e.clientX; _dmy = e.clientY;
+    _dfx = f.x;       _dfy = f.y;
+
+    const onMove = mv => {
+      if (!_dragging) return;
+      const dx = (mv.clientX - _dmx) / rect.width  * 100;
+      const dy = (mv.clientY - _dmy) / rect.height * 100;
+      _dragging.x = Math.max(0, Math.min(94, _dfx + dx));
+      _dragging.y = Math.max(0, Math.min(94, _dfy + dy));
+      renderOverlays();
+      document.getElementById('prop-x').value = _dragging.x.toFixed(1);
+      document.getElementById('prop-y').value = _dragging.y.toFixed(1);
+    };
+    const onUp = () => {
+      _dragging = null;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }
+
+  function onCanvasClick(e) {
+    if (!e.target.closest('.cert-field')) {
+      _selId = null;
+      renderOverlays();
+      hideProps();
+    }
+  }
+
+  // ── Save Template ──────────────────────────────────────────
+  async function saveTemplate() {
+    const name = document.getElementById('tmpl-name-input').value.trim();
+    if (!name) { UI.toast('請輸入模板名稱', 'warning'); return; }
+    const btn = document.getElementById('btn-save-tmpl');
+    btn.disabled = true;
+    const isDefault = document.getElementById('tmpl-default-chk').checked;
+    const data = {
+      orgId: APP_CONFIG.orgId,
+      name,
+      bgImageUrl:   _bgUrl  || null,
+      bgStoragePath: _bgPath || null,
+      isDefault,
+      fields: _fields,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    };
+    try {
+      if (isDefault) {
+        const batch = db.batch();
+        _templates.filter(t => t.isDefault && t.id !== _editId).forEach(t =>
+          batch.update(db.collection(Collections.TEMPLATES).doc(t.id), { isDefault: false }));
+        await batch.commit();
+        _templates.forEach(t => { if (t.id !== _editId) t.isDefault = false; });
+      }
+      if (_editId) {
+        await db.collection(Collections.TEMPLATES).doc(_editId).update(data);
+        const idx = _templates.findIndex(t => t.id === _editId);
+        if (idx >= 0) _templates[idx] = { ..._templates[idx], ...data };
+      } else {
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        data.createdBy = Auth.user.uid;
+        const ref = await db.collection(Collections.TEMPLATES).add(data);
+        _editId = ref.id;
+        _templates.unshift({ id: ref.id, ...data });
+      }
+      UI.toast('模板已儲存', 'success');
+      renderGrid();
+    } catch(e) {
+      UI.toast('儲存失敗：' + e.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ── Delete Template ────────────────────────────────────────
+  async function confirmDeleteTemplate(id) {
+    const t = _templates.find(x => x.id === id);
+    if (!t) return;
+    if (!confirm(`確定刪除模板「${t.name || '未命名'}」？此操作無法復原。`)) return;
+    try {
+      await db.collection(Collections.TEMPLATES).doc(id).delete();
+      if (t.bgStoragePath) storage.ref(t.bgStoragePath).delete().catch(() => {});
+      _templates = _templates.filter(x => x.id !== id);
+      renderGrid();
+      UI.toast('模板已刪除', 'success');
+    } catch(e) {
+      UI.toast('刪除失敗：' + e.message, 'error');
+    }
+  }
   </script>
 </body>
 </html>

@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>課程詳情 — CCS 證書管理系統</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config={theme:{extend:{colors:{'ccs-blue':'#3165A7','ccs-teal':'#1A9A83','ccs-orange':'#F3982D','ccs-gray':'#58595B'}}}}</script>
   <link rel="stylesheet" href="../assets/css/app.css">
@@ -15,6 +16,8 @@
     .info-value { font-size:.95rem; color:#1f2937; font-weight:500; }
     .drop-zone { border:2px dashed #d1d5db; border-radius:12px; padding:2rem; text-align:center; cursor:pointer; transition:all .2s; }
     .drop-zone:hover, .drop-zone.drag-over { border-color:#3165A7; background:#eff6ff; }
+    .pdf-link { display:inline-flex; align-items:center; gap:3px; padding:2px 7px; border-radius:4px; font-size:.72rem; font-weight:600; background:#dcfce7; color:#166534; text-decoration:none; border:1px solid #bbf7d0; }
+    .pdf-link:hover { background:#bbf7d0; }
   </style>
 </head>
 <body class="bg-gray-50">
@@ -77,6 +80,10 @@
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
                 <span data-i18n="projects.add_student_btn">新增學員</span>
               </button>
+              <button onclick="startGenerateCerts()" class="btn-primary text-sm py-1.5" style="background:#1A9A83;border-color:#1A9A83;" id="btn-gen-all">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                產生證書
+              </button>
             </div>
           </div>
           <div class="overflow-x-auto">
@@ -89,11 +96,12 @@
                   <th data-i18n="projects.col_email">Email</th>
                   <th data-i18n="projects.col_cert_no">證書編號</th>
                   <th data-i18n="projects.col_student_status">狀態</th>
+                  <th>證書下載</th>
                   <th data-i18n="projects.col_actions">操作</th>
                 </tr>
               </thead>
               <tbody id="students-tbody">
-                <tr><td colspan="7" class="text-center py-12"><div class="spinner mx-auto"></div></td></tr>
+                <tr><td colspan="8" class="text-center py-12"><div class="spinner mx-auto"></div></td></tr>
               </tbody>
             </table>
           </div>
@@ -284,6 +292,41 @@
     </div>
   </div>
 
+  <!-- ── 產生證書進度 Modal ── -->
+  <div id="gen-modal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width:480px">
+      <div class="modal-header">
+        <h3 id="gen-modal-title" class="modal-title">產生證書</h3>
+      </div>
+      <div class="modal-body space-y-4">
+        <div>
+          <div class="flex justify-between text-sm text-gray-600 mb-2">
+            <span id="gen-status-text">準備中...</span>
+            <span id="gen-progress-label"></span>
+          </div>
+          <div class="bg-gray-200 rounded-full h-2.5">
+            <div id="gen-progress-bar" class="h-2.5 rounded-full transition-all duration-300" style="width:0%;background:#1A9A83;"></div>
+          </div>
+        </div>
+        <div id="gen-log" class="text-xs text-gray-400 space-y-0.5 max-h-32 overflow-y-auto"></div>
+        <div id="gen-error" class="hidden text-sm text-red-500 bg-red-50 p-3 rounded-lg"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-gen-done" onclick="UI.hideModal('gen-modal')" class="btn-primary hidden">完成</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 隱藏 Cert Frame（用於 html2canvas 渲染）── -->
+  <div id="cert-frame" style="position:fixed;top:-9999px;left:-9999px;width:960px;height:680px;overflow:hidden;font-family:'Noto Serif TC','Noto Sans TC',serif;">
+    <div style="position:relative;width:100%;height:100%;">
+      <img id="cert-frame-bg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">
+      <div id="cert-frame-fields" style="position:absolute;inset:0;"></div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -367,13 +410,26 @@
         return;
       }
 
+      const certLangs = _project.certLangs || ['zh_TW'];
+      const langLabel = { zh_TW:'繁中', zh_CN:'簡中', en:'EN', vi:'VI' };
+
       tbody.innerHTML = _students.map((s, idx) => {
         const nameZh = s.nameZhTW || '—';
         const nameEn = s.nameEn  || '—';
-        const statusBadge = s.status === 'generated'
+        const isGen  = s.status === 'generated';
+        const statusBadge = isGen
           ? `<span class="badge badge-completed">${i18n.t('projects.student_status_generated')}</span>`
           : `<span class="badge badge-draft">${i18n.t('projects.student_status_pending')}</span>`;
         const nameEsc = (s.nameZhTW || '').replace(/'/g,"\\'");
+
+        // PDF download links
+        const pdfLinks = isGen
+          ? certLangs.map(l => s.pdfUrls?.[l]
+              ? `<a href="${s.pdfUrls[l]}" target="_blank" class="pdf-link">${langLabel[l]}</a>`
+              : `<span class="pdf-link" style="opacity:.4;cursor:default;">${langLabel[l]}</span>`
+            ).join('')
+          : '<span class="text-gray-300 text-xs">—</span>';
+
         return `<tr>
           <td class="text-gray-400 text-xs">${idx + 1}</td>
           <td class="font-medium">${nameZh}</td>
@@ -381,8 +437,12 @@
           <td class="text-gray-500 text-xs">${s.email || '—'}</td>
           <td class="font-mono text-xs">${s.certNumber || '—'}</td>
           <td>${statusBadge}</td>
+          <td><div class="flex gap-1 flex-wrap">${pdfLinks}</div></td>
           <td>
             <div class="flex gap-1">
+              <button onclick="startGenerateCerts('${s.id}')" class="btn-icon text-ccs-teal hover:bg-teal-50" title="${isGen ? '重新產生' : '產生證書'}">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </button>
               <button onclick="openEditStudentModal('${s.id}')" class="btn-icon" title="編輯">
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
               </button>
@@ -704,6 +764,207 @@
       const el = document.getElementById('import-error');
       el.textContent = msg;
       el.classList.remove('hidden');
+    }
+
+    // ── 證書生成 ──────────────────────────────────────────────
+
+    const FIELD_IMG_TYPES = ['signature','logo'];
+
+    async function urlToBase64(url) {
+      try {
+        const resp = await fetch(url);
+        const blob = await resp.blob();
+        return await new Promise((res, rej) => {
+          const fr = new FileReader();
+          fr.onload = () => res(fr.result);
+          fr.onerror = rej;
+          fr.readAsDataURL(blob);
+        });
+      } catch(e) { console.warn('urlToBase64 failed', url, e); return null; }
+    }
+
+    function formatCertDate(dateStr, lang) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr + 'T00:00:00');
+      const y = d.getFullYear(), m = d.getMonth()+1, day = d.getDate();
+      if (lang === 'en')   return d.toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'});
+      if (lang === 'vi')   return `Ngày ${day} tháng ${m} năm ${y}`;
+      return `${y}年${m}月${day}日`;
+    }
+
+    function getCertFieldValue(type, student, project, org, lang, customText) {
+      const suf = { zh_TW:'小時', zh_CN:'小时', en:'Hours', vi:'giờ' };
+      const nameMap = { zh_TW: student.nameZhTW, zh_CN: student.nameZhCN, en: student.nameEn, vi: student.nameVi };
+      switch(type) {
+        case 'student_name':     return nameMap[lang] || student.nameZhTW || '';
+        case 'course_name':      return project.courseName?.[lang] || project.courseName?.zh_TW || '';
+        case 'training_date':    return formatCertDate(project.trainingDate, lang);
+        case 'hours':            return project.hours ? `${project.hours} ${suf[lang]||suf.zh_TW}` : '';
+        case 'cert_no':          return student.certNumber || '';
+        case 'org_name':         return org[`name_${lang}`] || org.name_zh_TW || '';
+        case 'authorized_name':  return org[`authorizedName_${lang}`] || org.authorizedName_zh_TW || '';
+        case 'authorized_title': return org[`authorizedTitle_${lang}`] || org.authorizedTitle_zh_TW || '';
+        case 'custom_text':      return customText || '';
+        default: return '';
+      }
+    }
+
+    function buildCertFrame(template, student, project, org, lang, bgB64, logoB64, sigB64) {
+      const bgEl = document.getElementById('cert-frame-bg');
+      if (bgB64) { bgEl.src = bgB64; bgEl.style.display = 'block'; }
+      else bgEl.style.display = 'none';
+
+      document.getElementById('cert-frame-fields').innerHTML = (template.fields || []).map(f => {
+        if (FIELD_IMG_TYPES.includes(f.type)) {
+          const src = f.type === 'logo' ? logoB64 : sigB64;
+          if (!src) return '';
+          return `<img src="${src}" style="position:absolute;left:${f.x}%;top:${f.y}%;width:${f.width}%;height:${f.height||8}%;object-fit:contain;object-position:left center;">`;
+        }
+        const text = getCertFieldValue(f.type, student, project, org, lang, f.customText);
+        return `<div style="
+          position:absolute;left:${f.x}%;top:${f.y}%;width:${f.width}%;
+          transform:translateY(-50%);
+          font-size:${f.fontSize}px;color:${f.fontColor};
+          font-weight:${f.bold?700:400};text-align:${f.align||'center'};
+          font-family:'Noto Serif TC','Noto Sans TC',serif;
+          line-height:1.3;white-space:nowrap;overflow:visible;
+        ">${text}</div>`;
+      }).join('');
+    }
+
+    function genLog(msg) {
+      const el = document.getElementById('gen-log');
+      const p = document.createElement('p');
+      p.textContent = msg;
+      el.appendChild(p);
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function genSetProgress(done, total) {
+      const pct = total > 0 ? Math.round(done/total*100) : 0;
+      document.getElementById('gen-progress-bar').style.width = pct + '%';
+      document.getElementById('gen-progress-label').textContent = `${done} / ${total}`;
+    }
+
+    // startGenerateCerts(studentId?) — null = 全部待發學員
+    async function startGenerateCerts(singleId) {
+      const targets = singleId
+        ? [singleId]
+        : _students.filter(s => s.status !== 'generated').map(s => s.id);
+
+      if (targets.length === 0) { UI.toast('所有學員已發證', 'success'); return; }
+
+      // Load default template
+      let template = null;
+      try {
+        const snap = await db.collection(Collections.TEMPLATES)
+          .where('orgId','==',APP_CONFIG.orgId)
+          .where('isDefault','==',true).limit(1).get();
+        if (snap.empty) {
+          // fallback: any template
+          const snap2 = await db.collection(Collections.TEMPLATES)
+            .where('orgId','==',APP_CONFIG.orgId).limit(1).get();
+          if (snap2.empty) {
+            UI.toast('請先在「證書模板」建立並設為預設的模板', 'error'); return;
+          }
+          template = { id: snap2.docs[0].id, ...snap2.docs[0].data() };
+        } else {
+          template = { id: snap.docs[0].id, ...snap.docs[0].data() };
+        }
+      } catch(e) { UI.toast('無法載入模板：' + e.message, 'error'); return; }
+
+      // Load org
+      let org = {};
+      try {
+        const orgDoc = await db.collection(Collections.ORG).doc(APP_CONFIG.orgId).get();
+        if (orgDoc.exists) org = orgDoc.data();
+      } catch(e) { console.warn('org load failed', e); }
+
+      // Show progress modal
+      document.getElementById('gen-modal-title').textContent =
+        singleId ? '產生單筆證書' : `批次產生 ${targets.length} 位學員的證書`;
+      document.getElementById('gen-status-text').textContent = '載入圖片資源...';
+      document.getElementById('gen-progress-bar').style.width = '0%';
+      document.getElementById('gen-progress-label').textContent = '';
+      document.getElementById('gen-log').innerHTML = '';
+      document.getElementById('gen-error').classList.add('hidden');
+      document.getElementById('btn-gen-done').classList.add('hidden');
+      UI.showModal('gen-modal');
+
+      // Pre-load images as base64
+      const bgB64   = template.bgImageUrl ? await urlToBase64(template.bgImageUrl) : null;
+      const logoB64 = org.logoUrl          ? await urlToBase64(org.logoUrl)         : null;
+      const sigB64  = org.signatureUrl     ? await urlToBase64(org.signatureUrl)    : null;
+
+      const certLangs = _project.certLangs || ['zh_TW'];
+      let doneCount = 0;
+
+      for (const sid of targets) {
+        const student = _students.find(s => s.id === sid);
+        if (!student) continue;
+
+        genLog(`處理：${student.nameZhTW || sid}`);
+        document.getElementById('gen-status-text').textContent = `產生中：${student.nameZhTW || ''}`;
+
+        const pdfUrls = { ...(student.pdfUrls || {}) };
+
+        try {
+          for (const lang of certLangs) {
+            const langLabel = { zh_TW:'繁中', zh_CN:'簡中', en:'EN', vi:'VI' };
+            genLog(`  → ${langLabel[lang] || lang}`);
+
+            // Build cert frame
+            buildCertFrame(template, student, _project, org, lang, bgB64, logoB64, sigB64);
+            await new Promise(r => setTimeout(r, 150)); // wait for render
+
+            // html2canvas → canvas
+            const canvas = await html2canvas(document.getElementById('cert-frame'), {
+              scale: 1.5, useCORS: true, allowTaint: false, logging: false,
+              backgroundColor: '#ffffff',
+            });
+
+            // canvas → jsPDF
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({ orientation:'landscape', unit:'px', format:[960,680], compress:true });
+            pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 960, 680);
+            const blob = pdf.output('blob');
+
+            // Upload to Storage
+            const path = `certs/${APP_CONFIG.orgId}/${PROJECT_ID}/${sid}/${lang}.pdf`;
+            const ref = storage.ref(path);
+            await ref.put(blob, { contentType:'application/pdf' });
+            pdfUrls[lang] = await ref.getDownloadURL();
+          }
+
+          // Update Firestore student
+          await db.collection(Collections.PROJECTS).doc(PROJECT_ID)
+            .collection(Collections.STUDENTS).doc(sid).update({
+              status: 'generated', pdfUrls,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            });
+
+          // Update local
+          const idx = _students.findIndex(s => s.id === sid);
+          if (idx >= 0) { _students[idx].status = 'generated'; _students[idx].pdfUrls = pdfUrls; }
+
+        } catch(e) {
+          genLog(`  ✗ 失敗：${e.message}`);
+          console.error(sid, e);
+        }
+
+        doneCount++;
+        genSetProgress(doneCount, targets.length);
+      }
+
+      // Update project generatedCount
+      const genTotal = _students.filter(s => s.status === 'generated').length;
+      await db.collection(Collections.PROJECTS).doc(PROJECT_ID).update({ generatedCount: genTotal });
+      _project.generatedCount = genTotal;
+
+      document.getElementById('gen-status-text').textContent = `完成！已產生 ${doneCount} 位學員的證書`;
+      document.getElementById('btn-gen-done').classList.remove('hidden');
+      renderProjectInfo();
+      renderStudents();
     }
 
     async function confirmImport() {
