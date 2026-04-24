@@ -3,12 +3,12 @@
 // https://console.firebase.google.com
 // =============================================================
 const FIREBASE_CONFIG = {
-  apiKey:            "YOUR_API_KEY",
-  authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId:         "YOUR_PROJECT_ID",
-  storageBucket:     "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId:             "YOUR_APP_ID"
+  apiKey:            "AIzaSyAFARhaNdYpadc2FkHFnJR8RS3QztHE6PI",
+  authDomain:        "ccs-cert.firebaseapp.com",
+  projectId:         "ccs-cert",
+  storageBucket:     "ccs-cert.firebasestorage.app",
+  messagingSenderId: "921664396191",
+  appId:             "1:921664396191:web:851b26dd2e0757ca3a7baa"
 };
 
 // =============================================================
