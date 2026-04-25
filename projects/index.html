@@ -162,6 +162,13 @@
           </div>
           <p class="text-xs text-gray-400 mt-1.5">系統將依選取語言自動產生對應語言版本的證書</p>
         </div>
+        <div>
+          <label class="form-label">證書模板</label>
+          <select id="f-template" class="form-select">
+            <option value="">使用預設模板</option>
+          </select>
+          <p class="text-xs text-gray-400 mt-1">留空則使用系統預設模板</p>
+        </div>
         <div id="modal-error" class="hidden text-sm text-red-500 bg-red-50 p-3 rounded-lg"></div>
       </div>
       <div class="modal-footer">
@@ -200,13 +207,36 @@
 
   <script>
     let _allProjects = [];
+    let _templates = [];
     let _currentFilter = 'all';
     let _editingId = null;
 
     (async () => {
       await UI.initAdminPage({ active: 'projects', titleKey: 'projects.title' });
-      await loadProjects();
+      await Promise.all([loadProjects(), loadTemplates()]);
     })();
+
+    async function loadTemplates() {
+      try {
+        const snap = await db.collection(Collections.TEMPLATES)
+          .where('orgId', '==', APP_CONFIG.orgId).get();
+        _templates = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch (e) {
+        console.warn('loadTemplates failed', e);
+      }
+    }
+
+    function populateTemplateSelect(selectId, selectedId) {
+      const sel = document.getElementById(selectId);
+      sel.innerHTML = '<option value="">使用預設模板</option>';
+      _templates.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.name + (t.isDefault ? '（預設）' : '');
+        sel.appendChild(opt);
+      });
+      sel.value = selectedId || '';
+    }
 
     async function loadProjects() {
       try {
@@ -328,6 +358,7 @@
       document.getElementById('f-hours').value = '';
       document.getElementById('f-status').value = 'draft';
       setCertLangs(CERT_LANGS);
+      populateTemplateSelect('f-template', '');
       document.getElementById('modal-error').classList.add('hidden');
       switchLangTab('zh_TW');
       UI.showModal('project-modal');
@@ -346,6 +377,7 @@
       document.getElementById('f-prefix').value = p.certPrefix || '';
       document.getElementById('f-status').value = p.status || 'draft';
       setCertLangs(p.certLangs);
+      populateTemplateSelect('f-template', p.templateId || '');
       document.getElementById('modal-error').classList.add('hidden');
       switchLangTab('zh_TW');
       UI.showModal('project-modal');
@@ -384,6 +416,7 @@
         certPrefix: document.getElementById('f-prefix').value.trim().toUpperCase(),
         certLangs,
         status: document.getElementById('f-status').value,
+        templateId: document.getElementById('f-template').value || null,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       };
 

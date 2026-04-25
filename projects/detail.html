@@ -168,6 +168,13 @@
             </select>
           </div>
         </div>
+        <div>
+          <label class="form-label">證書模板</label>
+          <select id="p-template" class="form-select">
+            <option value="">使用預設模板</option>
+          </select>
+          <p class="text-xs text-gray-400 mt-1">留空則使用系統預設模板</p>
+        </div>
         <div id="p-error" class="hidden text-sm text-red-500 bg-red-50 p-3 rounded-lg"></div>
       </div>
       <div class="modal-footer">
@@ -347,11 +354,34 @@
     let _students = [];
     let _editingStudentId = null;
     let _importData = [];
+    let _templates = [];
+
+    async function loadTemplates() {
+      try {
+        const snap = await db.collection(Collections.TEMPLATES)
+          .where('orgId', '==', APP_CONFIG.orgId).get();
+        _templates = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch (e) {
+        console.warn('loadTemplates failed', e);
+      }
+    }
+
+    function populateTemplateSelect(selectId, selectedId) {
+      const sel = document.getElementById(selectId);
+      sel.innerHTML = '<option value="">使用預設模板</option>';
+      _templates.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.name + (t.isDefault ? '（預設）' : '');
+        sel.appendChild(opt);
+      });
+      sel.value = selectedId || '';
+    }
 
     (async () => {
       await UI.initAdminPage({ active: 'projects', titleKey: 'projects.title' });
       if (!PROJECT_ID) { window.location.href = 'index.html'; return; }
-      await loadProject();
+      await Promise.all([loadProject(), loadTemplates()]);
       await loadStudents();
     })();
 
@@ -603,6 +633,7 @@
       document.getElementById('p-hours').value  = p.hours || '';
       document.getElementById('p-prefix').value = p.certPrefix || '';
       document.getElementById('p-status').value = p.status || 'draft';
+      populateTemplateSelect('p-template', p.templateId || '');
       document.getElementById('p-error').classList.add('hidden');
       switchPLang('zh_TW');
       UI.showModal('project-modal');
@@ -631,6 +662,7 @@
         hours: parseInt(document.getElementById('p-hours').value) || 0,
         certPrefix: document.getElementById('p-prefix').value.trim().toUpperCase(),
         status: document.getElementById('p-status').value,
+        templateId: document.getElementById('p-template').value || null,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       };
       try {
@@ -854,22 +886,31 @@
 
       if (targets.length === 0) { UI.toast('所有學員已發證', 'success'); return; }
 
-      // Load default template
+      // Load template — prefer project's assigned template, fall back to default
       let template = null;
       try {
-        const snap = await db.collection(Collections.TEMPLATES)
-          .where('orgId','==',APP_CONFIG.orgId)
-          .where('isDefault','==',true).limit(1).get();
-        if (snap.empty) {
-          // fallback: any template
-          const snap2 = await db.collection(Collections.TEMPLATES)
-            .where('orgId','==',APP_CONFIG.orgId).limit(1).get();
-          if (snap2.empty) {
-            UI.toast('請先在「證書模板」建立並設為預設的模板', 'error'); return;
+        if (_project.templateId) {
+          const tDoc = await db.collection(Collections.TEMPLATES).doc(_project.templateId).get();
+          if (tDoc.exists) {
+            template = { id: tDoc.id, ...tDoc.data() };
           }
-          template = { id: snap2.docs[0].id, ...snap2.docs[0].data() };
-        } else {
-          template = { id: snap.docs[0].id, ...snap.docs[0].data() };
+        }
+        if (!template) {
+          // Fall back to org default template
+          const snap = await db.collection(Collections.TEMPLATES)
+            .where('orgId','==',APP_CONFIG.orgId)
+            .where('isDefault','==',true).limit(1).get();
+          if (snap.empty) {
+            // fallback: any template
+            const snap2 = await db.collection(Collections.TEMPLATES)
+              .where('orgId','==',APP_CONFIG.orgId).limit(1).get();
+            if (snap2.empty) {
+              UI.toast('請先在「證書模板」建立並設為預設的模板', 'error'); return;
+            }
+            template = { id: snap2.docs[0].id, ...snap2.docs[0].data() };
+          } else {
+            template = { id: snap.docs[0].id, ...snap.docs[0].data() };
+          }
         }
       } catch(e) { UI.toast('無法載入模板：' + e.message, 'error'); return; }
 
