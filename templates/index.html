@@ -186,15 +186,22 @@
       <div id="canvas-area" style="flex:1;overflow:auto;display:flex;flex-direction:column;align-items:flex-start;padding:20px;gap:10px;">
 
         <!-- Controls -->
-        <div id="canvas-controls" style="display:flex;align-items:center;gap:10px;width:960px;">
+        <div id="canvas-controls" style="display:flex;align-items:center;gap:8px;width:960px;">
           <label class="btn-secondary cursor-pointer" style="font-size:.8rem;padding:6px 12px;">
             <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4m4-5l5 5 5-5m-5 5V3"/></svg>
             上傳背景圖
             <input id="bg-file-input" type="file" accept="image/png,image/jpeg,image/jpg,application/pdf,.pdf" class="hidden" onchange="handleBgUpload(event)">
           </label>
+          <!-- Orientation quick-set -->
+          <div style="display:flex;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;flex-shrink:0;">
+            <button id="btn-orient-landscape" onclick="setOrientation('landscape')"
+              style="padding:4px 10px;font-size:.75rem;background:#3165A7;color:white;border:none;cursor:pointer;">⬛ 橫式</button>
+            <button id="btn-orient-portrait" onclick="setOrientation('portrait')"
+              style="padding:4px 10px;font-size:.75rem;background:white;color:#6b7280;border:none;cursor:pointer;">▐ 直式</button>
+          </div>
           <span id="bg-status" style="font-size:.75rem;color:#6b7280;"></span>
           <div style="flex:1"></div>
-          <span id="canvas-size-hint" style="font-size:.72rem;color:#9ca3af;">建議尺寸 1920×1356 px（A4 橫式 2x）</span>
+          <span id="canvas-size-hint" style="font-size:.72rem;color:#9ca3af;"></span>
         </div>
 
         <!-- Design Canvas 960×680 -->
@@ -347,7 +354,7 @@
     document.getElementById('cert-bg-img').style.display = 'none';
     document.getElementById('canvas-placeholder').style.display = 'flex';
     document.getElementById('bg-status').textContent = '';
-    applyCanvasSize(960, 680);
+    setOrientation('landscape'); // default to A4 landscape
     renderOverlays();
     hideProps();
     showEditor();
@@ -380,14 +387,41 @@
     showEditor();
   }
 
+  const LONG_SIDE = 960; // longer edge is always 960px
+
   function applyCanvasSize(imgW, imgH) {
     _origImgW = imgW; _origImgH = imgH;
-    _canvasW  = 960;
-    _canvasH  = imgW > 0 ? Math.round(960 * imgH / imgW) : imgH;
-    document.getElementById('design-canvas').style.width  = _canvasW + 'px';
-    document.getElementById('design-canvas').style.height = _canvasH + 'px';
-    const hint = document.getElementById('canvas-size-hint');
-    if (hint) hint.textContent = `${imgW} × ${imgH} px`;
+    if (imgW >= imgH) {
+      // landscape
+      _canvasW = LONG_SIDE;
+      _canvasH = imgW > 0 ? Math.round(LONG_SIDE * imgH / imgW) : imgH;
+    } else {
+      // portrait
+      _canvasH = LONG_SIDE;
+      _canvasW = imgH > 0 ? Math.round(LONG_SIDE * imgW / imgH) : imgW;
+    }
+    const canvas = document.getElementById('design-canvas');
+    canvas.style.width  = _canvasW + 'px';
+    canvas.style.height = _canvasH + 'px';
+    document.getElementById('canvas-controls').style.width = _canvasW + 'px';
+    document.getElementById('canvas-size-hint').textContent =
+      `${imgW} × ${imgH} px → 畫布 ${_canvasW} × ${_canvasH}`;
+    // Sync orientation buttons
+    const isLandscape = imgW >= imgH;
+    document.getElementById('btn-orient-landscape').style.cssText =
+      `padding:4px 10px;font-size:.75rem;border:none;cursor:pointer;${isLandscape ? 'background:#3165A7;color:white;' : 'background:white;color:#6b7280;'}`;
+    document.getElementById('btn-orient-portrait').style.cssText =
+      `padding:4px 10px;font-size:.75rem;border:none;cursor:pointer;${!isLandscape ? 'background:#3165A7;color:white;' : 'background:white;color:#6b7280;'}`;
+  }
+
+  function setOrientation(orient) {
+    const isL = orient === 'landscape';
+    // A4 ratio 297:210 = 1.4143
+    if (isL) {
+      applyCanvasSize(1920, 1357); // landscape A4 at 2x
+    } else {
+      applyCanvasSize(1357, 1920); // portrait A4 at 2x
+    }
   }
 
   function showEditor() {
