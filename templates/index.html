@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>證書模板 — CCS 證書管理系統</title>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&family=Noto+Sans+TC:wght@400;700&family=LXGW+WenKai+TC&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config={theme:{extend:{colors:{'ccs-blue':'#3165A7','ccs-teal':'#1A9A83','ccs-orange':'#F3982D','ccs-gray':'#58595B'}}}}</script>
   <link rel="stylesheet" href="../assets/css/app.css">
@@ -141,6 +141,18 @@
             <input id="prop-fs" type="number" min="8" max="200" class="form-input" style="width:64px;font-size:.8rem;"
               oninput="updateField('fontSize',+this.value)">
             <span style="font-size:.72rem;color:#9ca3af">px</span>
+          </div>
+
+          <div class="prop-row" id="prop-font-row">
+            <span class="prop-lbl">字體</span>
+            <select id="prop-font" class="form-input" style="font-size:.78rem;flex:1;"
+              onchange="updateField('fontFamily',this.value)">
+              <option value="'Noto Serif TC',serif">思源宋體（Noto Serif）</option>
+              <option value="'Noto Sans TC',sans-serif">思源黑體（Noto Sans）</option>
+              <option value="'LXGW WenKai TC',cursive">霞鶩文楷（WenKai）</option>
+              <option value="'PingFang TC','Microsoft JhengHei',sans-serif">系統黑體（PingFang / 微軟正黑）</option>
+              <option value="'PMingLiU','新細明體',serif">系統宋體（細明體）</option>
+            </select>
           </div>
 
           <div class="prop-row" id="prop-color-row">
@@ -590,6 +602,7 @@
       width: isImg ? 14 : 60,
       height: isImg ? 9 : null,
       fontSize: isImg ? 0 : 26,
+      fontFamily: "'Noto Serif TC',serif",
       fontColor: '#1F3C6E',
       bold: false,
       align: 'center',
@@ -628,12 +641,13 @@
     document.getElementById('prop-fs').value    = f.fontSize || 26;
     document.getElementById('prop-color').value = f.fontColor || '#1F3C6E';
     document.getElementById('prop-bold').checked = !!f.bold;
+    document.getElementById('prop-font').value  = f.fontFamily || "'Noto Serif TC',serif";
     document.getElementById('prop-w').value = f.width || 60;
     document.getElementById('prop-x').value = parseFloat(f.x||0).toFixed(1);
     document.getElementById('prop-y').value = parseFloat(f.y||0).toFixed(1);
     setAlignUI(f.align || 'center');
     // Toggle image-only fields
-    ['prop-fs-row','prop-color-row','prop-bold-row','prop-align-row'].forEach(id =>
+    ['prop-fs-row','prop-font-row','prop-color-row','prop-bold-row','prop-align-row'].forEach(id =>
       document.getElementById(id).style.display = isImg ? 'none' : 'flex');
     document.getElementById('prop-h-row').style.display = isImg ? 'flex' : 'none';
     if (isImg) document.getElementById('prop-h').value = f.height || 9;
@@ -696,7 +710,7 @@
           color:${f.fontColor};
           font-weight:${f.bold ? 700 : 400};
           text-align:${f.align || 'center'};
-          font-family:'Noto Serif TC','Noto Sans TC',serif;
+          font-family:${f.fontFamily || "'Noto Serif TC',serif"};
           text-shadow:0 1px 3px rgba(255,255,255,.7);
           line-height:1.2;
         `;
