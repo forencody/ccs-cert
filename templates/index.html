@@ -74,6 +74,13 @@
       <input id="tmpl-name-input" type="text" placeholder="模板名稱（例：標準教育訓練證書）"
         class="border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-ccs-blue"
         style="width:280px">
+      <!-- Orientation quick-set -->
+      <div style="display:flex;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;flex-shrink:0;">
+        <button id="btn-orient-landscape" onclick="setOrientation('landscape')"
+          style="padding:5px 12px;font-size:.78rem;background:#3165A7;color:white;border:none;cursor:pointer;">⬛ 橫式</button>
+        <button id="btn-orient-portrait" onclick="setOrientation('portrait')"
+          style="padding:5px 12px;font-size:.78rem;background:white;color:#6b7280;border:none;cursor:pointer;">▐ 直式</button>
+      </div>
       <div style="flex:1"></div>
       <span style="font-size:.8rem;color:#6b7280;">預覽語系</span>
       <select id="preview-lang-sel" onchange="renderOverlays()"
@@ -192,13 +199,6 @@
             上傳背景圖
             <input id="bg-file-input" type="file" accept="image/png,image/jpeg,image/jpg,application/pdf,.pdf" class="hidden" onchange="handleBgUpload(event)">
           </label>
-          <!-- Orientation quick-set -->
-          <div style="display:flex;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;flex-shrink:0;">
-            <button id="btn-orient-landscape" onclick="setOrientation('landscape')"
-              style="padding:4px 10px;font-size:.75rem;background:#3165A7;color:white;border:none;cursor:pointer;">⬛ 橫式</button>
-            <button id="btn-orient-portrait" onclick="setOrientation('portrait')"
-              style="padding:4px 10px;font-size:.75rem;background:white;color:#6b7280;border:none;cursor:pointer;">▐ 直式</button>
-          </div>
           <span id="bg-status" style="font-size:.75rem;color:#6b7280;"></span>
           <div style="flex:1"></div>
           <span id="canvas-size-hint" style="font-size:.72rem;color:#9ca3af;"></span>
