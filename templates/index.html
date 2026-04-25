@@ -605,8 +605,8 @@
       x: 20, y: 40,
       width: isImg ? 14 : 60,
       height: isImg ? 9 : null,
-      fontSize: isImg ? 0 : 26,
-      fontFamily: "'Noto Serif TC',serif",
+      fontSize: isImg ? 0 : 14,
+      fontFamily: "'Noto Sans TC',sans-serif",
       fontColor: '#000000',
       bold: false,
       align: 'center',
@@ -642,10 +642,10 @@
     document.getElementById('field-props').style.display = 'block';
     document.getElementById('field-hint').style.display  = 'none';
     document.getElementById('prop-type-label').textContent = fd?.label || f.type;
-    document.getElementById('prop-fs').value    = f.fontSize || 26;
+    document.getElementById('prop-fs').value    = f.fontSize || 14;
     document.getElementById('prop-color').value = f.fontColor || '#1F3C6E';
     document.getElementById('prop-bold').checked = !!f.bold;
-    document.getElementById('prop-font').value  = f.fontFamily || "'Noto Serif TC',serif";
+    document.getElementById('prop-font').value  = f.fontFamily || "'Noto Sans TC',sans-serif";
     document.getElementById('prop-w').value = f.width || 60;
     document.getElementById('prop-x').value = parseFloat(f.x||0).toFixed(1);
     document.getElementById('prop-y').value = parseFloat(f.y||0).toFixed(1);
@@ -714,7 +714,7 @@
           color:${f.fontColor};
           font-weight:${f.bold ? 700 : 400};
           text-align:${f.align || 'center'};
-          font-family:${f.fontFamily || "'Noto Serif TC',serif"};
+          font-family:${f.fontFamily || "'Noto Sans TC',sans-serif"};
           text-shadow:0 1px 3px rgba(255,255,255,.7);
           line-height:1.2;
         `;
