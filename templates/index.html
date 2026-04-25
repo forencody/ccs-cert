@@ -183,9 +183,10 @@
       </div>
 
       <!-- Canvas Area -->
-      <div style="flex:1;overflow:auto;display:flex;flex-direction:column;align-items:flex-start;padding:20px;gap:10px;">
+      <div id="canvas-area" style="flex:1;overflow:auto;display:flex;flex-direction:column;align-items:flex-start;padding:20px;gap:10px;">
+
         <!-- Controls -->
-        <div style="display:flex;align-items:center;gap:10px;width:960px;">
+        <div id="canvas-controls" style="display:flex;align-items:center;gap:10px;width:960px;">
           <label class="btn-secondary cursor-pointer" style="font-size:.8rem;padding:6px 12px;">
             <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4m4-5l5 5 5-5m-5 5V3"/></svg>
             上傳背景圖
@@ -193,12 +194,12 @@
           </label>
           <span id="bg-status" style="font-size:.75rem;color:#6b7280;"></span>
           <div style="flex:1"></div>
-          <span style="font-size:.72rem;color:#9ca3af;">建議尺寸 1920×1356 px（A4 橫式 2x）</span>
+          <span id="canvas-size-hint" style="font-size:.72rem;color:#9ca3af;">建議尺寸 1920×1356 px（A4 橫式 2x）</span>
         </div>
 
         <!-- Design Canvas 960×680 -->
         <div id="design-canvas"
-          style="position:relative;width:960px;height:680px;flex-shrink:0;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.15);border-radius:4px;"
+          style="position:relative;width:960px;height:680px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.15);border-radius:4px;"
           onmousedown="onCanvasMouseDown(event)"
           onclick="onCanvasClick(event)"
           ondragover="onCanvasDragOver(event)"
@@ -206,7 +207,7 @@
           ondrop="onCanvasDrop(event)">
 
           <img id="cert-bg-img" src="" alt=""
-            style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;pointer-events:none;">
+            style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill;display:none;pointer-events:none;">
 
           <div id="canvas-placeholder" class="canvas-checker"
             style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#9ca3af;">
@@ -224,7 +225,8 @@
 
           <div id="field-overlays" style="position:absolute;inset:0;pointer-events:none;"></div>
         </div>
-      </div>
+
+      </div><!-- /canvas-area -->
     </div>
   </div>
 
@@ -273,6 +275,8 @@
   let _selId = null;
   let _bgUrl = null;
   let _bgPath = null;
+  let _canvasW = 960, _canvasH = 680;
+  let _origImgW = 960, _origImgH = 680;
   let _dragging = null, _dmx = 0, _dmy = 0, _dfx = 0, _dfy = 0;
 
   // ── Init ───────────────────────────────────────────────────
@@ -343,6 +347,7 @@
     document.getElementById('cert-bg-img').style.display = 'none';
     document.getElementById('canvas-placeholder').style.display = 'flex';
     document.getElementById('bg-status').textContent = '';
+    applyCanvasSize(960, 680);
     renderOverlays();
     hideProps();
     showEditor();
@@ -363,14 +368,26 @@
       img.src = _bgUrl; img.style.display = 'block';
       document.getElementById('canvas-placeholder').style.display = 'none';
       document.getElementById('bg-status').textContent = '已有背景圖';
+      applyCanvasSize(t.bgWidth || 960, t.bgHeight || 680);
     } else {
       document.getElementById('cert-bg-img').style.display = 'none';
       document.getElementById('canvas-placeholder').style.display = 'flex';
       document.getElementById('bg-status').textContent = '';
+      applyCanvasSize(960, 680);
     }
     renderOverlays();
     hideProps();
     showEditor();
+  }
+
+  function applyCanvasSize(imgW, imgH) {
+    _origImgW = imgW; _origImgH = imgH;
+    _canvasW  = 960;
+    _canvasH  = imgW > 0 ? Math.round(960 * imgH / imgW) : imgH;
+    document.getElementById('design-canvas').style.width  = _canvasW + 'px';
+    document.getElementById('design-canvas').style.height = _canvasH + 'px';
+    const hint = document.getElementById('canvas-size-hint');
+    if (hint) hint.textContent = `${imgW} × ${imgH} px`;
   }
 
   function showEditor() {
@@ -427,30 +444,39 @@
         const arrayBuf = await file.arrayBuffer();
         const pdfDoc   = await pdfjsLib.getDocument({ data: arrayBuf }).promise;
         const page     = await pdfDoc.getPage(1);
-        // Render at scale to cover ~1920×1356
         const baseVP   = page.getViewport({ scale: 1 });
-        const scale    = Math.max(1920 / baseVP.width, 1356 / baseVP.height);
+        // Scale so the LONG side = 1920px — preserves portrait vs landscape
+        const longSide = Math.max(baseVP.width, baseVP.height);
+        const scale    = 1920 / longSide;
         const vp       = page.getViewport({ scale });
         const cvs      = document.createElement('canvas');
         cvs.width  = Math.round(vp.width);
         cvs.height = Math.round(vp.height);
         await page.render({ canvasContext: cvs.getContext('2d'), viewport: vp }).promise;
 
-        // Show local preview
+        // Show local preview + resize canvas to match PDF orientation
         const bgImg = document.getElementById('cert-bg-img');
         bgImg.src = cvs.toDataURL('image/jpeg', 0.95);
         bgImg.style.display = 'block';
         document.getElementById('canvas-placeholder').style.display = 'none';
+        applyCanvasSize(cvs.width, cvs.height);
 
         // Convert canvas to PNG blob for upload
         uploadFile = await new Promise(res => cvs.toBlob(res, 'image/png'));
         uploadExt  = 'png';
         statusEl.textContent = 'PDF 轉換完成，上傳中...';
       } else {
+        const objectUrl = URL.createObjectURL(file);
         const bgImg = document.getElementById('cert-bg-img');
-        bgImg.src = URL.createObjectURL(file);
         bgImg.style.display = 'block';
         document.getElementById('canvas-placeholder').style.display = 'none';
+        // Detect dimensions then show
+        await new Promise(res => {
+          const tmp = new Image();
+          tmp.onload = () => { applyCanvasSize(tmp.naturalWidth, tmp.naturalHeight); res(); };
+          tmp.src = objectUrl;
+        });
+        bgImg.src = objectUrl;
       }
 
       const tmpId = _editId || ('new_' + Date.now());
@@ -664,6 +690,8 @@
       name,
       bgImageUrl:   _bgUrl  || null,
       bgStoragePath: _bgPath || null,
+      bgWidth:  _origImgW,
+      bgHeight: _origImgH,
       isDefault,
       fields: _fields,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
