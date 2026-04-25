@@ -375,16 +375,15 @@
       img.src = _bgUrl; img.style.display = 'block';
       document.getElementById('canvas-placeholder').style.display = 'none';
       document.getElementById('bg-status').textContent = '已有背景圖';
-      applyCanvasSize(t.bgWidth || 3508, t.bgHeight || 2480);
     } else {
       document.getElementById('cert-bg-img').style.display = 'none';
       document.getElementById('canvas-placeholder').style.display = 'flex';
       document.getElementById('bg-status').textContent = '';
-      applyCanvasSize(3508, 2480);
     }
-    renderOverlays();
     hideProps();
-    showEditor();
+    showEditor(); // show FIRST so getBoundingClientRect() works in applyCanvasSize
+    applyCanvasSize(t.bgWidth  || 3508, t.bgHeight || 2480);
+    renderOverlays();
   }
 
   const MAX_LONG = 960; // max size along the long edge at 100% zoom
@@ -401,11 +400,20 @@
       rawH = MAX_LONG; rawW = Math.round(MAX_LONG * ratio);
     }
 
-    // Step 2: fit within the visible canvas-area
-    //   subtract left panel (228px) + horizontal padding (60px)
-    //   subtract top bar (54px) + controls bar (46px) + vertical padding (50px)
-    const availW = Math.max(320, window.innerWidth  - 228 - 60);
-    const availH = Math.max(320, window.innerHeight - 54  - 96);
+    // Step 2: fit within the visible canvas-area (use getBoundingClientRect for accuracy)
+    // canvas-area overhead: padding-top(20) + controls(~40) + gap(10) + padding-bottom(20) = 90px
+    const area = document.getElementById('canvas-area');
+    const rect = area.getBoundingClientRect();
+    let availW, availH;
+    if (rect.width > 0 && rect.height > 0) {
+      // Editor is visible – use actual dimensions
+      availW = Math.max(320, rect.width  - 40);
+      availH = Math.max(320, rect.height - 90);
+    } else {
+      // Editor not yet visible – estimate from window
+      availW = Math.max(320, window.innerWidth  - 228 - 60);
+      availH = Math.max(320, window.innerHeight - 54  - 96);
+    }
     const fitScale = Math.min(1, availW / rawW, availH / rawH);
 
     _canvasW = Math.round(rawW * fitScale);
