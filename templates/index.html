@@ -21,6 +21,19 @@
     .cert-field:hover { border-color: rgba(49,101,167,0.6); border-radius: 3px; }
     .cert-field.selected { border: 2px solid #3165A7; border-radius: 3px; box-shadow: 0 0 0 3px rgba(49,101,167,.2); }
     .cert-field .finner { width:100%; overflow:hidden; white-space:nowrap; pointer-events:none; }
+    .resize-handle {
+      position:absolute; width:10px; height:10px;
+      background:white; border:2px solid #3165A7; border-radius:2px;
+      z-index:20; pointer-events:all;
+    }
+    .resize-handle[data-dir="nw"] { top:-5px;  left:-5px;              cursor:nw-resize; }
+    .resize-handle[data-dir="n"]  { top:-5px;  left:calc(50% - 5px);  cursor:ns-resize; }
+    .resize-handle[data-dir="ne"] { top:-5px;  right:-5px;             cursor:ne-resize; }
+    .resize-handle[data-dir="e"]  { top:calc(50% - 5px); right:-5px;  cursor:ew-resize; }
+    .resize-handle[data-dir="se"] { bottom:-5px; right:-5px;           cursor:se-resize; }
+    .resize-handle[data-dir="s"]  { bottom:-5px; left:calc(50% - 5px);cursor:ns-resize; }
+    .resize-handle[data-dir="sw"] { bottom:-5px; left:-5px;            cursor:sw-resize; }
+    .resize-handle[data-dir="w"]  { top:calc(50% - 5px); left:-5px;   cursor:ew-resize; }
     .field-btn { display:flex; align-items:center; gap:8px; width:100%; padding:7px 10px; border-radius:8px;
       font-size:.8rem; color:#374151; background:transparent; border:1px solid transparent; cursor:pointer; text-align:left; transition:all .12s; }
     .field-btn:hover { background:#f0f4ff; border-color:#c7d7f0; }
@@ -285,6 +298,7 @@
   let _canvasW = 960, _canvasH = 679;
   let _origImgW = 3508, _origImgH = 2480;
   let _dragging = null, _dmx = 0, _dmy = 0, _dfx = 0, _dfy = 0;
+  let _resizing = null; // { f, dir, mx0, my0, fx0, fy0, fw0, fh0, rw, rh }
 
   // ── Init ───────────────────────────────────────────────────
   (async () => {
@@ -674,6 +688,7 @@
         div.style.justifyContent = 'center';
         div.innerHTML = `<span style="font-size:.78rem;color:#6b7280;font-weight:600;">${fd.i} ${fd.label}</span>`;
       } else {
+        if (f.height) div.style.height = f.height + '%';
         const inner = document.createElement('div');
         inner.className = 'finner';
         inner.style.cssText = `
@@ -688,12 +703,83 @@
         inner.textContent = getSampleValue(f.type, lang, f.customText);
         div.appendChild(inner);
       }
+
+      // Resize handles for selected field
+      if (isSel) {
+        ['nw','n','ne','e','se','s','sw','w'].forEach(dir => {
+          const h = document.createElement('div');
+          h.className = 'resize-handle';
+          h.dataset.dir = dir;
+          div.appendChild(h);
+        });
+      }
+
       container.appendChild(div);
     });
   }
 
-  // ── Drag & Drop ────────────────────────────────────────────
+  // ── Drag & Resize ──────────────────────────────────────────
   function onCanvasMouseDown(e) {
+    const canvas = document.getElementById('design-canvas');
+    const rect   = canvas.getBoundingClientRect();
+
+    // ── Resize handle? ──
+    const handle = e.target.closest('.resize-handle');
+    if (handle) {
+      e.preventDefault();
+      e.stopPropagation();
+      const el  = handle.closest('.cert-field');
+      const fid = el?.dataset.fid;
+      const f   = _fields.find(x => x.id === fid);
+      if (!f) return;
+      const dir = handle.dataset.dir;
+      _resizing = {
+        f, dir,
+        mx0: e.clientX, my0: e.clientY,
+        fx0: f.x, fy0: f.y,
+        fw0: f.width, fh0: f.height || 9,
+        rw: rect.width, rh: rect.height
+      };
+      const onMove = mv => {
+        if (!_resizing) return;
+        const { f, dir, mx0, my0, fx0, fy0, fw0, fh0, rw, rh } = _resizing;
+        const dx = (mv.clientX - mx0) / rw * 100;
+        const dy = (mv.clientY - my0) / rh * 100;
+
+        if (dir.includes('e')) {
+          f.width = Math.max(5, Math.min(100 - fx0, fw0 + dx));
+        }
+        if (dir.includes('w')) {
+          const nw = Math.max(5, fw0 - dx);
+          f.x     = fx0 + fw0 - nw;
+          f.width = nw;
+        }
+        if (dir.includes('s')) {
+          f.height = Math.max(3, Math.min(100 - fy0, fh0 + dy));
+        }
+        if (dir.includes('n')) {
+          const nh = Math.max(3, fh0 - dy);
+          f.y      = fy0 + fh0 - nh;
+          f.height = nh;
+        }
+
+        renderOverlays();
+        document.getElementById('prop-w').value = f.width.toFixed(1);
+        document.getElementById('prop-h').value = (f.height || fh0).toFixed(1);
+        document.getElementById('prop-x').value = f.x.toFixed(1);
+        document.getElementById('prop-y').value = f.y.toFixed(1);
+      };
+      const onUp = () => {
+        _resizing = null;
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+      return;
+    }
+
+    // ── Drag field body ──
     const el = e.target.closest('.cert-field');
     if (!el) return;
     e.preventDefault();
@@ -704,8 +790,6 @@
     showProps(f);
     renderOverlays();
 
-    const canvas = document.getElementById('design-canvas');
-    const rect = canvas.getBoundingClientRect();
     _dragging = f;
     _dmx = e.clientX; _dmy = e.clientY;
     _dfx = f.x;       _dfy = f.y;
