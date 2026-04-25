@@ -387,31 +387,43 @@
     showEditor();
   }
 
-  const LONG_SIDE = 960; // longer edge is always 960px
+  const MAX_LONG = 960; // max size along the long edge at 100% zoom
 
   function applyCanvasSize(imgW, imgH) {
     _origImgW = imgW; _origImgH = imgH;
+    const ratio = imgW / imgH;
+
+    // Step 1: ideal size – long side = MAX_LONG
+    let rawW, rawH;
     if (imgW >= imgH) {
-      // landscape
-      _canvasW = LONG_SIDE;
-      _canvasH = imgW > 0 ? Math.round(LONG_SIDE * imgH / imgW) : imgH;
+      rawW = MAX_LONG; rawH = Math.round(MAX_LONG / ratio);
     } else {
-      // portrait
-      _canvasH = LONG_SIDE;
-      _canvasW = imgH > 0 ? Math.round(LONG_SIDE * imgW / imgH) : imgW;
+      rawH = MAX_LONG; rawW = Math.round(MAX_LONG * ratio);
     }
+
+    // Step 2: fit within the visible canvas-area
+    //   subtract left panel (228px) + horizontal padding (60px)
+    //   subtract top bar (54px) + controls bar (46px) + vertical padding (50px)
+    const availW = Math.max(320, window.innerWidth  - 228 - 60);
+    const availH = Math.max(320, window.innerHeight - 54  - 96);
+    const fitScale = Math.min(1, availW / rawW, availH / rawH);
+
+    _canvasW = Math.round(rawW * fitScale);
+    _canvasH = Math.round(rawH * fitScale);
+
     const canvas = document.getElementById('design-canvas');
     canvas.style.width  = _canvasW + 'px';
     canvas.style.height = _canvasH + 'px';
     document.getElementById('canvas-controls').style.width = _canvasW + 'px';
     document.getElementById('canvas-size-hint').textContent =
       `${imgW} × ${imgH} px → 畫布 ${_canvasW} × ${_canvasH}`;
+
     // Sync orientation buttons
     const isLandscape = imgW >= imgH;
     document.getElementById('btn-orient-landscape').style.cssText =
-      `padding:4px 10px;font-size:.75rem;border:none;cursor:pointer;${isLandscape ? 'background:#3165A7;color:white;' : 'background:white;color:#6b7280;'}`;
+      `padding:5px 12px;font-size:.78rem;border:none;cursor:pointer;${isLandscape ? 'background:#3165A7;color:white;' : 'background:white;color:#6b7280;'}`;
     document.getElementById('btn-orient-portrait').style.cssText =
-      `padding:4px 10px;font-size:.75rem;border:none;cursor:pointer;${!isLandscape ? 'background:#3165A7;color:white;' : 'background:white;color:#6b7280;'}`;
+      `padding:5px 12px;font-size:.78rem;border:none;cursor:pointer;${!isLandscape ? 'background:#3165A7;color:white;' : 'background:white;color:#6b7280;'}`;
   }
 
   function setOrientation(orient) {
@@ -429,6 +441,11 @@
     el.classList.remove('hidden');
     el.style.display = 'flex';
   }
+
+  // Re-fit canvas when window is resized
+  window.addEventListener('resize', () => {
+    if (_origImgW && _origImgH) applyCanvasSize(_origImgW, _origImgH);
+  });
 
   function closeEditor() {
     const el = document.getElementById('editor-overlay');
