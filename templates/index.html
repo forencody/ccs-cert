@@ -395,6 +395,12 @@
     if (!t) return;
     _editId = id;
     _fields = JSON.parse(JSON.stringify(t.fields || []));
+    // Migrate old defaults: apply new defaults for missing/legacy values
+    _fields.forEach(f => {
+      if (!f.fontFamily || f.fontFamily === "'Noto Serif TC',serif") f.fontFamily = "'Noto Sans TC',sans-serif";
+      if (!f.fontSize || f.fontSize === 26) f.fontSize = 14;
+      if (!f.fontColor || f.fontColor === '#1F3C6E') f.fontColor = '#000000';
+    });
     _bgUrl  = t.bgImageUrl || null;
     _bgPath = t.bgStoragePath || null;
     _selId  = null;
