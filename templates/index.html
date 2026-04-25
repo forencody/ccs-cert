@@ -282,8 +282,8 @@
   let _selId = null;
   let _bgUrl = null;
   let _bgPath = null;
-  let _canvasW = 960, _canvasH = 680;
-  let _origImgW = 960, _origImgH = 680;
+  let _canvasW = 960, _canvasH = 679;
+  let _origImgW = 3508, _origImgH = 2480;
   let _dragging = null, _dmx = 0, _dmy = 0, _dfx = 0, _dfy = 0;
 
   // ── Init ───────────────────────────────────────────────────
@@ -375,12 +375,12 @@
       img.src = _bgUrl; img.style.display = 'block';
       document.getElementById('canvas-placeholder').style.display = 'none';
       document.getElementById('bg-status').textContent = '已有背景圖';
-      applyCanvasSize(t.bgWidth || 960, t.bgHeight || 680);
+      applyCanvasSize(t.bgWidth || 3508, t.bgHeight || 2480);
     } else {
       document.getElementById('cert-bg-img').style.display = 'none';
       document.getElementById('canvas-placeholder').style.display = 'flex';
       document.getElementById('bg-status').textContent = '';
-      applyCanvasSize(960, 680);
+      applyCanvasSize(3508, 2480);
     }
     renderOverlays();
     hideProps();
@@ -416,11 +416,11 @@
 
   function setOrientation(orient) {
     const isL = orient === 'landscape';
-    // A4 ratio 297:210 = 1.4143
+    // A4 @ 300 dpi: 3508 × 2480 px
     if (isL) {
-      applyCanvasSize(1920, 1357); // landscape A4 at 2x
+      applyCanvasSize(3508, 2480); // landscape A4
     } else {
-      applyCanvasSize(1357, 1920); // portrait A4 at 2x
+      applyCanvasSize(2480, 3508); // portrait A4
     }
   }
 
@@ -479,9 +479,9 @@
         const pdfDoc   = await pdfjsLib.getDocument({ data: arrayBuf }).promise;
         const page     = await pdfDoc.getPage(1);
         const baseVP   = page.getViewport({ scale: 1 });
-        // Scale so the LONG side = 1920px — preserves portrait vs landscape
+        // Scale so the LONG side = 3508px (A4 @ 300 dpi) — preserves portrait vs landscape
         const longSide = Math.max(baseVP.width, baseVP.height);
-        const scale    = 1920 / longSide;
+        const scale    = 3508 / longSide;
         const vp       = page.getViewport({ scale });
         const cvs      = document.createElement('canvas');
         cvs.width  = Math.round(vp.width);
